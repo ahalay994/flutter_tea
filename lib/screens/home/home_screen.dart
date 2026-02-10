@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/models/tea.dart';
+import 'package:tea/screens/add/add_screen.dart';
 import 'package:tea/utils/app_logger.dart';
 
 import 'widgets/tea_card.dart';
 import 'widgets/tea_drawer.dart';
 
-class TeaListScreen extends StatefulWidget {
+class TeaListScreen extends ConsumerStatefulWidget {
   const TeaListScreen({super.key});
 
   @override
-  State<TeaListScreen> createState() => _TeaListScreenState();
+  ConsumerState<TeaListScreen> createState() => _TeaListScreenState();
 }
 
-class _TeaListScreenState extends State<TeaListScreen> {
+class _TeaListScreenState extends ConsumerState<TeaListScreen> {
   final TeaController _controller = TeaController();
 
   @override
@@ -23,7 +25,7 @@ class _TeaListScreenState extends State<TeaListScreen> {
       appBar: AppBar(title: Text(dotenv.env['APP_NAME'] ?? 'Tea App')),
       drawer: const TeaFilterDrawer(),
       body: FutureBuilder<List<TeaModel>>(
-        future: _controller.fetchFullTeas(),
+        future: _controller.fetchFullTeas(ref),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -42,7 +44,9 @@ class _TeaListScreenState extends State<TeaListScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => print('Открыть форму добавления'),
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const AddScreen()));
+        },
         backgroundColor: Colors.blueAccent,
         child: const Icon(Icons.add),
       ),

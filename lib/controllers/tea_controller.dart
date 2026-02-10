@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tea/api/appearance_api.dart';
 import 'package:tea/api/country_api.dart';
 import 'package:tea/api/flavor_api.dart';
@@ -11,6 +12,8 @@ import 'package:tea/api/type_api.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/utils/app_logger.dart';
 
+import '../providers/metadata_provider.dart';
+
 class TeaController {
   final AppearanceApi _appearanceApi = AppearanceApi();
   final CountryApi _countryApi = CountryApi();
@@ -18,7 +21,7 @@ class TeaController {
   final TypeApi _typeApi = TypeApi();
   final TeaApi _teaApi = TeaApi();
 
-  Future<List<TeaModel>> fetchFullTeas() async {
+  Future<List<TeaModel>> fetchFullTeas(WidgetRef ref) async {
     try {
       // Запускаем все запросы параллельно
       final results = await Future.wait([
@@ -35,6 +38,14 @@ class TeaController {
       final List<FlavorResponse> flavors = results[2] as List<FlavorResponse>;
       final List<TypeResponse> types = results[3] as List<TypeResponse>;
       final List<TeaResponse> teaResponses = results[4] as List<TeaResponse>;
+
+      // СОХРАНЯЕМ В СТОР для использования в AddScreen
+      ref.read(metadataProvider.notifier).state = TeaMetadata(
+        appearances: appearances,
+        countries: countries,
+        flavors: flavors,
+        types: types,
+      );
 
       // Мапим каждый TeaResponse в готовую TeaModel
       final fullTeas = teaResponses.map((tea) {
