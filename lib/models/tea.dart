@@ -37,7 +37,7 @@ class TeaModel {
     required List<CountryResponse> countries,
     required List<TypeResponse> types,
     required List<AppearanceResponse> appearances,
-    required List<FlavorResponse> flavorsRepo,
+    required List<FlavorResponse> flavors,
   }) {
     List<String> imageUrls = DataMapper.getFieldList(response.images, (img) => img.url);
     if (imageUrls.isEmpty) {
@@ -55,7 +55,7 @@ class TeaModel {
       country: DataMapper.getFieldById(countries, (c) => c.name, response.countryId),
       type: DataMapper.getFieldById(types, (t) => t.name, response.typeId),
       appearance: DataMapper.getFieldById(appearances, (a) => a.name, response.appearanceId),
-      flavors: DataMapper.getFieldsByIds(flavorsRepo, (f) => f.name, response.flavors),
+      flavors: DataMapper.getFieldsByIds(flavors, (f) => f.name, response.flavors),
     );
   }
 }

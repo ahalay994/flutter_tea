@@ -43,7 +43,7 @@ class TeaController {
           countries: countries,
           types: types,
           appearances: appearances,
-          flavorsRepo: flavors,
+          flavors: flavors,
         );
       }).toList();
 
