@@ -4,7 +4,7 @@ import 'responses/type_response.dart';
 
 class TypeApi extends Api {
   Future<List<TypeResponse>> getTypes() async {
-    final response = await getRequest('/appearance');
+    final response = await getRequest('/type');
 
     if (response.ok) {
       return (response.data as List).map((json) => TypeResponse.fromJson(json as Map<String, dynamic>)).toList();
