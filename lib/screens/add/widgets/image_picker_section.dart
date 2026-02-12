@@ -18,6 +18,62 @@ class ImagePickerSection extends StatelessWidget {
     }
   }
 
+  Future<void> _takePhoto() async {
+    final ImagePicker picker = ImagePicker();
+
+    // Ключевой момент: source: ImageSource.camera
+    final XFile? photo = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 80, // немного сжимаем, чтобы приложение не лагало
+    );
+
+    if (photo != null) {
+      // Добавляем новое фото к уже выбранным
+      onImagesChanged([...selectedImages, photo]);
+    }
+  }
+
+  Future<void> _showPickerOptions(BuildContext context) async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _pickImages();
+                },
+                icon: const Icon(Icons.photo_library),
+                label: const Text('Открыть галерею'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50), // Кнопка на всю ширину
+                ),
+              ),
+
+              const SizedBox(height: 10), // Отступ между кнопками
+              // КНОПКА КАМЕРА
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _takePhoto();
+                },
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Открыть камеру'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[200], // Другой цвет, чтобы различать
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -30,7 +86,7 @@ class ImagePickerSection extends StatelessWidget {
             children: [
               // Кнопка "+"
               GestureDetector(
-                onTap: _pickImages,
+                onTap: () => _showPickerOptions(context),
                 child: Container(
                   width: 100,
                   decoration: BoxDecoration(
