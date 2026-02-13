@@ -18,7 +18,24 @@ class TeaCard extends StatelessWidget {
       elevation: 4,
       child: InkWell(
         onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => TeaDetailScreen(tea: tea)));
+          Navigator.of(context).push(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => TeaDetailScreen(tea: tea),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                const begin = Offset(1.0, 0.0);
+                const end = Offset.zero;
+                const curve = Curves.easeInOut;
+
+                var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                return SlideTransition(
+                  position: animation.drive(tween),
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+          );
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,7 +43,7 @@ class TeaCard extends StatelessWidget {
             // 1. Галерея
             AbsorbPointer(
               child: CarouselSlider(
-                options: CarouselOptions(height: 220.0, viewportFraction: 1.0, autoPlay: true),
+                options: CarouselOptions(height: 220.0, viewportFraction: 1.0, autoPlay: tea.images.length > 1),
                 items: tea.images.map((path) {
                   return SizedBox(
                     width: double.infinity,
@@ -87,14 +104,13 @@ class TeaCard extends StatelessWidget {
                         ),
                       ),
                       // Вес справа
-                      if (tea.weight != null)
-                        Row(
-                          children: [
-                            Icon(Icons.scale, size: 16, color: Colors.grey[600]),
-                            const SizedBox(width: 4),
-                            Text("${tea.weight}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.scale, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(tea.weight != null && tea.weight!.isNotEmpty ? "${tea.weight}" : "—", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ],
                   ),
                 ],

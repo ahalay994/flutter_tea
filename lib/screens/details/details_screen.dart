@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:tea/models/tea.dart';
+import 'package:tea/utils/ui_helpers.dart';
 import 'package:tea/widgets/image_gallery_view.dart';
 import 'package:tea/widgets/info_chip.dart';
 
@@ -41,28 +42,36 @@ class _TeaDetailScreenState extends State<TeaDetailScreen> {
             SliverAppBar(
               expandedHeight: 350,
               pinned: true,
+              automaticallyImplyLeading: true, // Показывает кнопку назад
               flexibleSpace: FlexibleSpaceBar(
+                title: !_isExpanded ? Text(
+                  widget.tea.name, // Показываем название чая только при закреплении
+                  style: const TextStyle(color: Colors.white),
+                  overflow: TextOverflow.ellipsis,
+                ) : null,
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
                     CarouselSlider.builder(
                       itemCount: widget.tea.images.length,
+                      itemBuilder: (context, index, realIndex) {
+                        final path = widget.tea.images[index]; // Получаем путь по индексу
+                        return AbsorbPointer(
+                          absorbing: !_isExpanded, // Если шапка свернута, клики ПОГЛОЩАЮТСЯ
+                          child: GestureDetector(
+                            onTap: () => path.startsWith('http') ? _openGalleryModal(index) : () => {},
+                            child: path.startsWith('http')
+                                ? Image.network(path, fit: BoxFit.cover)
+                                : Image.asset(path, fit: BoxFit.cover),
+                          ),
+                        );
+                      },
                       options: CarouselOptions(
                         height: 400,
                         viewportFraction: 1.0,
                         autoPlay: true,
                         enableInfiniteScroll: widget.tea.images.length > 1,
                       ),
-                      itemBuilder: (context, index, realIndex) {
-                        final path = widget.tea.images[index]; // Получаем путь по индексу
-                        return AbsorbPointer(
-                          absorbing: !_isExpanded, // Если шапка свернута, клики ПОГЛОЩАЮТСЯ
-                          child: GestureDetector(
-                            onTap: () => _openGalleryModal(index),
-                            child: Image.network(path, fit: BoxFit.cover),
-                          ),
-                        );
-                      },
                     ),
                     // Градиент снизу, чтобы текст имени был читаем (если захотите его в AppBar)
                     const IgnorePointer(
@@ -99,7 +108,7 @@ class _TeaDetailScreenState extends State<TeaDetailScreen> {
                             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        if (widget.tea.weight != null)
+                        if (widget.tea.weight != null && widget.tea.weight!.isNotEmpty)
                           Text(
                             "${widget.tea.weight}",
                             style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
@@ -124,7 +133,7 @@ class _TeaDetailScreenState extends State<TeaDetailScreen> {
                     const SizedBox(height: 8),
                     if (widget.tea.appearance != null)
                       FeatureRow(icon: Icons.visibility_outlined, label: "Внешний вид", value: widget.tea.appearance!),
-                    if (widget.tea.temperature != null)
+                    if (widget.tea.temperature != null && widget.tea.temperature!.trim().isNotEmpty)
                       FeatureRow(
                         icon: Icons.thermostat_outlined,
                         label: "Температура заваривания",
@@ -142,7 +151,7 @@ class _TeaDetailScreenState extends State<TeaDetailScreen> {
                     ],
 
                     // 6. Инструкция по завариванию
-                    if (widget.tea.brewingGuide != null && widget.tea.brewingGuide!.trim().isNotEmpty) ...[
+                    if (isHtmlContentNotEmpty(widget.tea.brewingGuide)) ...[
                       Container(
                         margin: const EdgeInsets.only(top: 24), // Отступ сверху, чтобы не прилипало
                         padding: const EdgeInsets.all(16),
@@ -164,7 +173,7 @@ class _TeaDetailScreenState extends State<TeaDetailScreen> {
                     ],
 
                     // 5. Описание
-                    if (widget.tea.description != null) ...[
+                    if (isHtmlContentNotEmpty(widget.tea.description)) ...[
                       const SectionTitle("О чае"),
                       const SizedBox(height: 8),
                       HtmlWidget(

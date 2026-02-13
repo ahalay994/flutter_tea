@@ -49,6 +49,8 @@ dependencies:
   flutter_riverpod: ^3.2.1
   dropdown_search: ^6.0.2
   flutter_quill: ^11.5.0
+  vsc_quill_delta_to_html: ^1.0.5
+  image: ^4.0.17
 
 dev_dependencies:
   flutter_test:

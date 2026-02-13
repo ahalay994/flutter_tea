@@ -8,8 +8,8 @@ class FlavorApi extends Api {
 
     if (response.ok) {
       return (response.data as List).map((json) => FlavorResponse.fromJson(json as Map<String, dynamic>)).toList();
+    } else {
+      throw Exception(response.message ?? "Ошибка при загрузке вкусов");
     }
-
-    return [];
   }
 }

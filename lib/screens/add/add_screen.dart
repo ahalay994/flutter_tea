@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tea/api/dto/create_tea_dto.dart';
+import 'package:tea/api/image_api.dart';
 import 'package:tea/api/responses/appearance_response.dart';
 import 'package:tea/api/responses/country_response.dart';
 import 'package:tea/api/responses/flavor_response.dart';
+import 'package:tea/api/responses/image_response.dart';
 import 'package:tea/api/responses/type_response.dart';
+import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/providers/metadata_provider.dart';
 import 'package:tea/screens/add/widgets/rich_editor.dart';
+import 'package:tea/utils/app_logger.dart';
+import 'package:tea/utils/ui_helpers.dart';
+import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 
 import 'widgets/image_picker_section.dart';
 import 'widgets/input_block.dart';
@@ -33,10 +40,78 @@ class _AddScreenState extends ConsumerState<AddScreen> {
   final QuillController _brewingGuide = QuillController.basic();
   final QuillController _description = QuillController.basic();
 
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _nameController.dispose();
+    _temperatureController.dispose();
+    _weightController.dispose();
+
+    _brewingGuide.dispose();
+    _description.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    if (_nameController.text.isEmpty) {
+      context.showErrorDialog("Введите название чая");
+      return;
+    }
+
+    context.showLoadingDialog();
+
+    try {
+      // ШАГ 1: Загрузка фото (выбросит Exception, если что-то не так)
+      final List<ImageResponse> uploadedImages = await ref.read(imageApiProvider).uploadMultipleImages(_selectedImages);
+
+      final brewingDelta = _brewingGuide.document.toDelta().toJson();
+      final descriptionDelta = _description.document.toDelta().toJson();
+
+      final brewingHtml = QuillDeltaToHtmlConverter(List<Map<String, dynamic>>.from(brewingDelta)).convert();
+      final descriptionHtml = QuillDeltaToHtmlConverter(List<Map<String, dynamic>>.from(descriptionDelta)).convert();
+
+      // ШАГ 2: Подготовка DTO
+      final dto = CreateTeaDto(
+        name: _nameController.text.trim(),
+        images: uploadedImages,
+        countryId: _selectedCountry?.id == 0 ? _selectedCountry?.name : _selectedCountry?.id,
+        typeId: _selectedType?.id == 0 ? _selectedType?.name : _selectedType?.id,
+        appearanceId: _selectedAppearance?.id == 0 ? _selectedAppearance?.name : _selectedAppearance?.id,
+        flavors: _selectedFlavors.map((f) => f.id == 0 ? f.name : f.id).toList(),
+        temperature: _temperatureController.text,
+        weight: _weightController.text,
+        brewingGuide: brewingHtml,
+        description: descriptionHtml,
+      );
+
+      // ШАГ 3: Сохранение данных (теперь тоже выбросит Exception при ошибке)
+      await ref
+          .read(teaControllerProvider)
+          .createTea(
+            dto,
+            onSuccess: () => ref.invalidate(teaListProvider), // Передаем инвалидацию здесь
+          );
+
+      if (!mounted) return;
+
+      context.hideLoading();
+      context.showSuccessSnackBar("Чай успешно добавлен!");
+      Navigator.pop(context);
+    } catch (e) {
+      // Сюда прилетит ЛЮБАЯ ошибка:
+      // - Ошибка загрузки фото
+      // - Ошибка сохранения чая (валидация бэкенда)
+      // - Ошибка сети или JSON-парсинга
+      AppLogger.error("Сбой в процессе сохранения", error: e);
+
+      if (mounted) {
+        context.hideLoading();
+        context.showErrorDialog(e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -47,13 +122,18 @@ class _AddScreenState extends ConsumerState<AddScreen> {
       appBar: AppBar(
         title: const Text("Добавить чай"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: () {
-              // Логика сохранения (пока пусто)
-              Navigator.pop(context);
-            },
-          ),
+          _isLoading
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
+                  ),
+                )
+              : IconButton(icon: const Icon(Icons.check), onPressed: _isLoading ? null : _handleSave),
         ],
       ),
       body: SingleChildScrollView(
@@ -91,7 +171,8 @@ class _AddScreenState extends ConsumerState<AddScreen> {
                 hint: "Выберите страну",
                 items: metadata.countries,
                 selectedValue: _selectedCountry,
-                itemLabel: (item) => item.name, // Твой объект CountryResponse.name
+                itemLabel: (item) => item.name,
+                // Твой объект CountryResponse.name
                 onCreate: (newName) => CountryResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
                 onChanged: (val) => setState(() => _selectedCountry = val),
               ),
@@ -105,7 +186,8 @@ class _AddScreenState extends ConsumerState<AddScreen> {
                 hint: "Выберите тип чая",
                 items: metadata.types,
                 selectedValue: _selectedType,
-                itemLabel: (item) => item.name, // Твой объект CountryResponse.name
+                itemLabel: (item) => item.name,
+                // Твой объект CountryResponse.name
                 onCreate: (newName) => TypeResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
                 onChanged: (val) => setState(() => _selectedType = val),
               ),
