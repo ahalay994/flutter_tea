@@ -51,6 +51,9 @@ dependencies:
   flutter_quill: ^11.5.0
   vsc_quill_delta_to_html: ^1.0.5
   image: ^4.0.17
+  html: ^0.15.4
+  sqflite: ^2.3.2
+  connectivity_plus: ^6.0.3
 
 dev_dependencies:
   flutter_test:

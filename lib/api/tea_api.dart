@@ -32,6 +32,20 @@ class TeaApi extends Api {
     }
   }
   
+  // Новый метод для обновления чая
+  Future<void> updateTea(int teaId, CreateTeaDto data) async {
+    final response = await putRequest('/tea/$teaId', data.toJson());
+    
+    if (!response.ok) {
+      // Выводим более подробную информацию об ошибке
+      String errorMessage = response.message ?? "Ошибка при обновлении чая";
+      if (response.data != null) {
+        errorMessage += "\nДополнительная информация: ${response.data}";
+      }
+      throw Exception(errorMessage);
+    }
+  }
+  
   Future<ApiResponse> deleteTea(int teaId) async {
     final response = await deleteRequest('/tea/$teaId');
     return response;

@@ -49,6 +49,9 @@ class TeaController {
       final List<TypeResponse> types = results[3] as List<TypeResponse>;
       final List<TeaResponse> teaResponses = results[4] as List<TeaResponse>;
 
+      // Проверяем, что ref все еще активен перед использованием
+      if (!ref.mounted) return [];
+
       // СОХРАНЯЕМ В СТОР для использования в AddScreen
       ref
           .read(metadataProvider.notifier)
@@ -90,13 +93,13 @@ class TeaController {
 
     AppLogger.success('Чай "${dto.name}" успешно создан');
   }
-  
+
   // Новый метод, который сначала создает чай, а затем получает его по ID
   Future<TeaModel> createTeaWithResponse(CreateTeaDto dto, {required VoidCallback onSuccess}) async {
     try {
       // Сохраняем чай и получаем ответ
       final teaResponses = await _teaApi.saveTea(dto);
-      
+
       // Если сервер вернул созданный чай, используем его
       if (teaResponses.isNotEmpty) {
         // Получаем все необходимые метаданные для создания модели
@@ -104,7 +107,7 @@ class TeaController {
         final List<CountryResponse> countries = await _countryApi.getCountries();
         final List<FlavorResponse> flavors = await _flavorApi.getFlavors();
         final List<TypeResponse> types = await _typeApi.getTypes();
-        
+
         // Создаем модель чая из ответа
         final newTea = TeaModel.fromResponse(
           response: teaResponses.first, // Берем первый (и скорее всего единственный) ответ
@@ -113,7 +116,7 @@ class TeaController {
           appearances: appearances,
           flavors: flavors,
         );
-        
+
         // 2. ИНВАЛИДИРУЕМ (сбрасываем) провайдер списка
         onSuccess();
 
@@ -122,23 +125,25 @@ class TeaController {
       } else {
         // Если сервер не вернул созданный чай, вызываем инвалидацию и получаем все чаи
         onSuccess();
-        
+
         // Ждем немного, чтобы список обновился
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         // Затем получаем список чаев и находим только что созданный
         final teas = await _teaApi.getTeas();
-        
+
         // Находим чай по имени (предполагаем, что имя уникально для тестирования)
-        final createdTea = teas.firstWhere((tea) => tea.name == dto.name, 
-            orElse: () => throw Exception("Новый чай не найден в списке"));
-        
+        final createdTea = teas.firstWhere(
+          (tea) => tea.name == dto.name,
+          orElse: () => throw Exception("Новый чай не найден в списке"),
+        );
+
         // Получаем все необходимые метаданные для создания модели
         final List<AppearanceResponse> appearances = await _appearanceApi.getAppearances();
         final List<CountryResponse> countries = await _countryApi.getCountries();
         final List<FlavorResponse> flavors = await _flavorApi.getFlavors();
         final List<TypeResponse> types = await _typeApi.getTypes();
-        
+
         final newTea = TeaModel.fromResponse(
           response: createdTea,
           countries: countries,
@@ -146,7 +151,7 @@ class TeaController {
           appearances: appearances,
           flavors: flavors,
         );
-        
+
         AppLogger.success('Чай "${dto.name}" успешно сохранен и получен');
         return newTea;
       }
@@ -155,11 +160,42 @@ class TeaController {
       rethrow; // Это гарантирует, что в AddScreen сработает блок catch и покажется модалка
     }
   }
-  
+
+  // Новый метод для обновления чая
+  Future<TeaResponse> updateTea(int teaId, CreateTeaDto dto, {required VoidCallback onSuccess}) async {
+    try {
+      // Просто используем DTO как есть, так как изображения уже правильно сформированы в экране редактирования
+      // с правильными ID для существующих изображений
+      await _teaApi.updateTea(teaId, dto);
+
+      // ИНВАЛИДИРУЕМ (сбрасываем) провайдер списка
+      // Это заставит главный экран (или любой виджет, который его слушает)
+      // заново вызвать fetchFullTeas.
+      onSuccess();
+
+      // После инвалидации списка получаем обновленный чай
+      // Ждем немного, чтобы список обновился
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Затем получаем список чаев и находим обновленный
+      final teas = await _teaApi.getTeas();
+      final updatedTea = teas.firstWhere(
+        (tea) => tea.id == teaId,
+        orElse: () => throw Exception("Обновленный чай не найден в списке"),
+      );
+
+      AppLogger.success('Чай "${dto.name}" успешно обновлён');
+      return updatedTea;
+    } catch (e, stack) {
+      AppLogger.error('Ошибка в TeaController при обновлении чая', error: e, stackTrace: stack);
+      rethrow; // Это гарантирует, что в EditScreen сработает блок catch и покажется модалка
+    }
+  }
+
   Future<bool> deleteTea(int teaId, {required VoidCallback onSuccess}) async {
     try {
       final response = await _teaApi.deleteTea(teaId);
-      
+
       // Удалилось или нет определяем по полю ok
       if (response.ok) {
         onSuccess(); // Обновляем список
@@ -174,7 +210,7 @@ class TeaController {
       rethrow;
     }
   }
-  
+
   // Метод для получения чая по ID
   Future<TeaResponse> getTea(int teaId) async {
     try {
@@ -182,6 +218,17 @@ class TeaController {
       return response;
     } catch (e, stack) {
       AppLogger.error('Ошибка в TeaController при получении чая', error: e, stackTrace: stack);
+      rethrow;
+    }
+  }
+
+  // Метод для получения чая как модели с полной информацией об изображениях
+  Future<TeaResponse> getFullTea(int teaId) async {
+    try {
+      final response = await _teaApi.getTea(teaId);
+      return response;
+    } catch (e, stack) {
+      AppLogger.error('Ошибка в TeaController при получении полного чая', error: e, stackTrace: stack);
       rethrow;
     }
   }

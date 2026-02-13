@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/models/tea.dart';
+import 'package:tea/screens/edit/edit_screen.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:tea/widgets/image_gallery_view.dart';
 import 'package:tea/widgets/info_chip.dart';
@@ -22,7 +23,14 @@ class TeaDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
+  late TeaModel _currentTea;
   bool _isExpanded = true; // Флаг: развернута ли шапка
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTea = widget.tea;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,17 +82,26 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     if (value == 'delete') {
                       _showDeleteConfirmationDialog(context);
                     } else if (value == 'edit') {
-                      // TODO: реализовать редактирование
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Функция редактирования в разработке')),
+                      // Навигация к экрану редактирования и получение обновленного чая
+                      final updatedTea = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => EditScreen(tea: _currentTea),
+                        ),
                       );
+                      
+                      // Если получен обновленный чай, обновляем локальное состояние
+                      if (updatedTea != null) {
+                        setState(() {
+                          _currentTea = updatedTea;
+                        });
+                      }
                     }
                   },
                 ),
               ],
               flexibleSpace: FlexibleSpaceBar(
                 title: !_isExpanded ? Text(
-                  widget.tea.name, // Показываем название чая только при закреплении
+                  _currentTea.name, // Показываем название чая только при закреплении
                   style: const TextStyle(color: Colors.white),
                   overflow: TextOverflow.ellipsis,
                 ) : null,
@@ -92,9 +109,9 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                   fit: StackFit.expand,
                   children: [
                     CarouselSlider.builder(
-                      itemCount: widget.tea.images.length,
+                      itemCount: _currentTea.images.length,
                       itemBuilder: (context, index, realIndex) {
-                        final path = widget.tea.images[index]; // Получаем путь по индексу
+                        final path = _currentTea.images[index]; // Получаем путь по индексу
                         return AbsorbPointer(
                           absorbing: !_isExpanded, // Если шапка свернута, клики ПОГЛОЩАЮТСЯ
                           child: GestureDetector(
@@ -109,7 +126,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                         height: 400,
                         viewportFraction: 1.0,
                         autoPlay: true,
-                        enableInfiniteScroll: widget.tea.images.length > 1,
+                        enableInfiniteScroll: _currentTea.images.length > 1,
                       ),
                     ),
                     // Градиент снизу, чтобы текст имени был читаем (если захотите его в AppBar)
@@ -143,13 +160,13 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.tea.name,
+                            _currentTea.name,
                             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        if (widget.tea.weight != null && widget.tea.weight!.isNotEmpty)
+                        if (_currentTea.weight != null && _currentTea.weight!.isNotEmpty)
                           Text(
-                            "${widget.tea.weight}",
+                            "${_currentTea.weight}",
                             style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
                           ),
                       ],
@@ -160,8 +177,8 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     Wrap(
                       spacing: 8,
                       children: [
-                        if (widget.tea.type != null)
-                          InfoChip(label: widget.tea.type!, backgroundColor: Colors.green[50]),
+                        if (_currentTea.type != null)
+                          InfoChip(label: _currentTea.type!, backgroundColor: Colors.green[50]),
                       ],
                     ),
 
@@ -170,27 +187,27 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     // 3. Секция характеристик (Appearance & Temperature)
                     const SectionTitle("Характеристики"),
                     const SizedBox(height: 8),
-                    if (widget.tea.appearance != null)
-                      FeatureRow(icon: Icons.visibility_outlined, label: "Внешний вид", value: widget.tea.appearance!),
-                    if (widget.tea.temperature != null && widget.tea.temperature!.trim().isNotEmpty)
+                    if (_currentTea.appearance != null)
+                      FeatureRow(icon: Icons.visibility_outlined, label: "Внешний вид", value: _currentTea.appearance!),
+                    if (_currentTea.temperature != null && _currentTea.temperature!.trim().isNotEmpty)
                       FeatureRow(
                         icon: Icons.thermostat_outlined,
                         label: "Температура заваривания",
-                        value: widget.tea.temperature!,
+                        value: _currentTea.temperature!,
                       ),
 
                     const SizedBox(height: 40),
 
                     // 4. Вкусовой профиль
-                    if (widget.tea.flavors.isNotEmpty) ...[
+                    if (_currentTea.flavors.isNotEmpty) ...[
                       const SectionTitle("Вкусовой профиль"),
                       const SizedBox(height: 8),
-                      Wrap(spacing: 8, runSpacing: 8, children: widget.tea.flavors.map((f) => FlavorTag(f)).toList()),
+                      Wrap(spacing: 8, runSpacing: 8, children: _currentTea.flavors.map((f) => FlavorTag(f)).toList()),
                       const SizedBox(height: 40),
                     ],
 
                     // 6. Инструкция по завариванию
-                    if (isHtmlContentNotEmpty(widget.tea.brewingGuide)) ...[
+                    if (isHtmlContentNotEmpty(_currentTea.brewingGuide)) ...[
                       Container(
                         margin: const EdgeInsets.only(top: 24), // Отступ сверху, чтобы не прилипало
                         padding: const EdgeInsets.all(16),
@@ -204,7 +221,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           children: [
                             const SectionTitle("Как заваривать"),
                             const SizedBox(height: 8),
-                            HtmlWidget(widget.tea.brewingGuide!, textStyle: const TextStyle(fontSize: 15, height: 1.4)),
+                            HtmlWidget(_currentTea.brewingGuide!, textStyle: const TextStyle(fontSize: 15, height: 1.4)),
                           ],
                         ),
                       ),
@@ -212,11 +229,11 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     ],
 
                     // 5. Описание
-                    if (isHtmlContentNotEmpty(widget.tea.description)) ...[
+                    if (isHtmlContentNotEmpty(_currentTea.description)) ...[
                       const SectionTitle("О чае"),
                       const SizedBox(height: 8),
                       HtmlWidget(
-                        widget.tea.description!,
+                        _currentTea.description!,
                         textStyle: const TextStyle(fontSize: 16, height: 1.5),
                         // Можно настроить отступы или кастомные стили для тегов
                       ),

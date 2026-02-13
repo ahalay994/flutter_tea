@@ -32,6 +32,24 @@ abstract class Api {
     }
   }
 
+  // PUT запрос для обновления данных (JSON)
+  Future<ApiResponse> putRequest(String endpoint, Map<String, dynamic> data) async {
+    try {
+      // Логируем отправляемые данные
+      print('PUT запрос к $endpoint с данными: ${json.encode(data)}');
+      
+      final response = await http.put(
+        Uri.parse('$_baseUrl$endpoint'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
+      print('Ответ сервера: ${response.statusCode}, тело: ${response.body}');
+      return _processResponse(response);
+    } catch (e) {
+      return ApiResponse(ok: false, message: 'Ошибка запроса: $e');
+    }
+  }
+
   // DELETE запрос
   Future<ApiResponse> deleteRequest(String endpoint) async {
     try {
@@ -70,23 +88,37 @@ abstract class Api {
 
   // Общий метод обработки ответа, чтобы не дублировать код
   ApiResponse _processResponse(http.Response response) {
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      try {
-        final decoded = json.decode(utf8.decode(response.bodyBytes));
-        return ApiResponse.fromJson(decoded);
-      } catch (e) {
-        // Если тело ответа пустое или не является JSON, создаем ApiResponse вручную
+    try {
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+      
+      // Проверяем, есть ли поле ok в ответе и используем его для определения успешности
+      if (decoded is Map<String, dynamic>) {
+        final ok = decoded['ok'] as bool? ?? (response.statusCode >= 200 && response.statusCode < 300);
+        final message = decoded['message'] as String? ?? (ok ? 'Успешно' : 'Ошибка сервера: ${response.statusCode}');
+        final data = decoded['data'];
+        
+        return ApiResponse(ok: ok, message: message, data: data);
+      } else {
+        // Если ответ не в формате JSON или не содержит поле ok, используем статус код
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          if (response.statusCode == 204) {
+            return ApiResponse(ok: true, message: 'Успешно', data: null);
+          }
+          return ApiResponse(ok: response.statusCode >= 200 && response.statusCode < 300, message: 'Ответ сервера', data: response.body);
+        } else {
+          return ApiResponse(ok: false, message: 'Ошибка сервера: ${response.statusCode}', data: response.body);
+        }
+      }
+    } catch (e) {
+      // Если не удается распарсить JSON, используем статус код
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         if (response.statusCode == 204) {
           return ApiResponse(ok: true, message: 'Успешно', data: null);
         }
-        return ApiResponse(
-          ok: response.statusCode >= 200 && response.statusCode < 300,
-          message: 'Ответ сервера',
-          data: response.body,
-        );
+        return ApiResponse(ok: response.statusCode >= 200 && response.statusCode < 300, message: 'Ответ сервера', data: response.body);
+      } else {
+        return ApiResponse(ok: false, message: 'Ошибка сервера: ${response.statusCode}', data: response.body);
       }
-    } else {
-      return ApiResponse(ok: false, message: 'Ошибка сервера: ${response.statusCode}');
     }
   }
 }
