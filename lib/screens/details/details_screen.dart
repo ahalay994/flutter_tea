@@ -1,6 +1,8 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:tea/widgets/image_gallery_view.dart';
@@ -10,16 +12,16 @@ import 'widgets/feature_row.dart';
 import 'widgets/flavor_tag.dart';
 import 'widgets/section_title.dart';
 
-class TeaDetailScreen extends StatefulWidget {
+class TeaDetailScreen extends ConsumerStatefulWidget {
   final TeaModel tea;
 
   const TeaDetailScreen({super.key, required this.tea});
 
   @override
-  State<TeaDetailScreen> createState() => _TeaDetailScreenState();
+  ConsumerState<TeaDetailScreen> createState() => _TeaDetailScreenState();
 }
 
-class _TeaDetailScreenState extends State<TeaDetailScreen> {
+class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
   bool _isExpanded = true; // Флаг: развернута ли шапка
 
   @override
@@ -43,6 +45,43 @@ class _TeaDetailScreenState extends State<TeaDetailScreen> {
               expandedHeight: 350,
               pinned: true,
               automaticallyImplyLeading: true, // Показывает кнопку назад
+              actions: [
+                PopupMenuButton(
+                  icon: const Icon(Icons.more_vert),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 20),
+                          SizedBox(width: 8),
+                          Text('Редактировать'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Удалить', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) async {
+                    if (value == 'delete') {
+                      _showDeleteConfirmationDialog(context);
+                    } else if (value == 'edit') {
+                      // TODO: реализовать редактирование
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Функция редактирования в разработке')),
+                      );
+                    }
+                  },
+                ),
+              ],
               flexibleSpace: FlexibleSpaceBar(
                 title: !_isExpanded ? Text(
                   widget.tea.name, // Показываем название чая только при закреплении
@@ -198,6 +237,75 @@ class _TeaDetailScreenState extends State<TeaDetailScreen> {
       context: context,
       barrierColor: Colors.black87,
       builder: (context) => ImageGalleryView(images: widget.tea.images, initialIndex: index),
+    );
+  }
+  
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: this.context, // используем контекст State
+      builder: (context) => AlertDialog(
+        title: const Text("Подтверждение удаления"),
+        content: Text("Вы действительно хотите удалить чай \"${widget.tea.name}\"?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Нет"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop(); // Закрываем диалог подтверждения
+              
+              // Показываем индикатор загрузки
+              this.context.showLoadingDialog(); // используем контекст State
+              
+              bool success = false;
+              String? errorMessage;
+              
+              try {
+                // Получаем контроллер и вызываем удаление
+                final controller = ref.read(teaControllerProvider);
+                
+                success = await controller.deleteTea(
+                  widget.tea.id,
+                  onSuccess: () => ref.invalidate(teaListProvider), // Обновляем список
+                );
+                
+                if (!success) {
+                  errorMessage = "Не удалось удалить чай";
+                }
+              } catch (e) {
+                errorMessage = e.toString();
+              }
+              
+              // Скрываем индикатор загрузки с проверкой mounted
+              if (mounted) {
+                this.context.hideLoading(); // используем контекст State
+                
+                // Откладываем навигацию до следующего кадра, чтобы избежать коллизий
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    if (success) {
+                      // Показываем сообщение об успешном удалении
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(content: Text("Чай \"${widget.tea.name}\" успешно удалён"), backgroundColor: Colors.green),
+                      );
+                      
+                      // Возвращаемся на главный экран при успешном удалении
+                      Navigator.of(this.context).pop(); // Закрываем экран деталей
+                    } else {
+                      // Показываем ошибку, если удаление не удалось
+                      if (mounted) {
+                        this.context.showErrorDialog(errorMessage ?? "Не удалось удалить чай");
+                      }
+                    }
+                  }
+                });
+              }
+            },
+            child: const Text("Да", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }

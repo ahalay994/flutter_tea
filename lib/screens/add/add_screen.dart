@@ -9,12 +9,15 @@ import 'package:tea/api/responses/country_response.dart';
 import 'package:tea/api/responses/flavor_response.dart';
 import 'package:tea/api/responses/image_response.dart';
 import 'package:tea/api/responses/type_response.dart';
+import 'package:tea/api/tea_api.dart';
 import 'package:tea/controllers/tea_controller.dart';
+import 'package:tea/models/tea.dart';
 import 'package:tea/providers/metadata_provider.dart';
 import 'package:tea/screens/add/widgets/rich_editor.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
+import 'package:tea/screens/details/details_screen.dart';
 
 import 'widgets/image_picker_section.dart';
 import 'widgets/input_block.dart';
@@ -86,18 +89,22 @@ class _AddScreenState extends ConsumerState<AddScreen> {
       );
 
       // ШАГ 3: Сохранение данных (теперь тоже выбросит Exception при ошибке)
-      await ref
-          .read(teaControllerProvider)
-          .createTea(
-            dto,
-            onSuccess: () => ref.invalidate(teaListProvider), // Передаем инвалидацию здесь
-          );
+      final teaResponse = await ref.read(teaControllerProvider).createTeaWithResponse(
+        dto,
+        onSuccess: () => ref.invalidate(teaListProvider), // Передаем инвалидацию здесь
+      );
 
       if (!mounted) return;
 
       context.hideLoading();
       context.showSuccessSnackBar("Чай успешно добавлен!");
-      Navigator.pop(context);
+      
+      // Навигация к странице деталей нового чая
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => TeaDetailScreen(tea: teaResponse),
+        ),
+      );
     } catch (e) {
       // Сюда прилетит ЛЮБАЯ ошибка:
       // - Ошибка загрузки фото
