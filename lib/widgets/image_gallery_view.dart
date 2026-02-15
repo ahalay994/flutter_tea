@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ImageGalleryView extends StatefulWidget {
   final List<String> images;
@@ -42,8 +43,15 @@ class _ImageGalleryViewState extends State<ImageGalleryView> {
             pageController: _pageController,
             onPageChanged: (index) => setState(() => _currentIndex = index),
             backgroundDecoration: const BoxDecoration(color: Colors.transparent),
-            builder: (context, index) => PhotoViewGalleryPageOptions(
-              imageProvider: NetworkImage(widget.images[index]),
+            builder: (context, index) => PhotoViewGalleryPageOptions.customChild(
+              child: widget.images[index].startsWith('http')
+                  ? CachedNetworkImage(
+                      imageUrl: widget.images[index],
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+                    )
+                  : Image.asset(widget.images[index], fit: BoxFit.contain),
               minScale: PhotoViewComputedScale.contained,
               maxScale: PhotoViewComputedScale.covered * 2,
             ),

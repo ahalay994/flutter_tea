@@ -29,18 +29,23 @@ extension UiHelpers on BuildContext {
   void showLoadingDialog() {
     showDialog(
       context: this,
-      barrierDismissible: false, // Пользователь не может закрыть его тапом по экрану
-      builder: (context) => PopScope(
-        canPop: false, // Блокирует системную кнопку "Назад" на Android
-        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+      barrierDismissible: false,
+      builder: (context) => const Dialog(
+        backgroundColor: Colors.transparent,
+        child: Center(
+          child: Image(
+            image: AssetImage('assets/images/loader.gif'),
+            width: 100,
+            height: 100,
+          ),
+        ),
       ),
     );
   }
 
-  // Закрывает лоадер
   void hideLoading() {
-    if (Navigator.canPop(this)) {
-      Navigator.pop(this);
+    if (Navigator.of(this).canPop()) {
+      Navigator.of(this).pop();
     }
   }
 }

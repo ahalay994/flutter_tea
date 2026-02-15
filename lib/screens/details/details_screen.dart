@@ -2,9 +2,9 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/models/tea.dart';
-import 'package:tea/screens/edit/edit_screen.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:tea/widgets/image_gallery_view.dart';
 import 'package:tea/widgets/info_chip.dart';
@@ -23,7 +23,12 @@ class TeaDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
-  late TeaModel _currentTea;
+  TeaModel _currentTea = TeaModel(
+    id: 0,
+    name: '',
+    flavors: [],
+    images: [],
+  );
   bool _isExpanded = true; // Флаг: развернута ли шапка
 
   @override
@@ -34,6 +39,8 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isConnected = ref.watch(teaControllerProvider).isConnected;
+
     return Scaffold(
       body: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
@@ -54,50 +61,44 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
               pinned: true,
               automaticallyImplyLeading: true, // Показывает кнопку назад
               actions: [
-                PopupMenuButton(
-                  icon: const Icon(Icons.more_vert),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Редактировать'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Удалить', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  onSelected: (value) async {
-                    if (value == 'delete') {
-                      _showDeleteConfirmationDialog(context);
-                    } else if (value == 'edit') {
-                      // Навигация к экрану редактирования и получение обновленного чая
-                      final updatedTea = await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => EditScreen(tea: _currentTea),
+                if (isConnected) // Показываем меню только при наличии интернета
+                  PopupMenuButton(
+                    icon: const Icon(Icons.more_vert),
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 20),
+                            SizedBox(width: 8),
+                            Text('Редактировать'),
+                          ],
                         ),
-                      );
-                      
-                      // Если получен обновленный чай, обновляем локальное состояние
-                      if (updatedTea != null) {
-                        setState(() {
-                          _currentTea = updatedTea;
-                        });
+                      ),
+                                        if (isConnected) // Показываем кнопку удаления только при наличии интернета
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete, size: 20, color: Colors.red),
+                                              SizedBox(width: 8),
+                                              Text('Удалить', style: TextStyle(color: Colors.red)),
+                                            ],
+                                          ),
+                                        ),                    ],
+                    onSelected: (value) async {
+                      if (value == 'delete') {
+                        _showDeleteConfirmationDialog(context);
+                      } else if (value == 'edit') {
+                        // TODO: реализовать переход к экрану редактирования
+                        // Navigator.of(context).push(
+                        //   MaterialPageRoute(
+                        //     builder: (context) => EditScreen(tea: _currentTea),
+                        //   ),
+                        // );
                       }
-                    }
-                  },
-                ),
+                    },
+                  ),
               ],
               flexibleSpace: FlexibleSpaceBar(
                 title: !_isExpanded ? Text(
@@ -117,7 +118,12 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           child: GestureDetector(
                             onTap: () => path.startsWith('http') ? _openGalleryModal(index) : () => {},
                             child: path.startsWith('http')
-                                ? Image.network(path, fit: BoxFit.cover)
+                                ? CachedNetworkImage(
+                                    imageUrl: path,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                                    errorWidget: (context, url, error) => const Icon(Icons.error),
+                                  )
                                 : Image.asset(path, fit: BoxFit.cover),
                           ),
                         );
@@ -154,9 +160,34 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Индикатор оффлайн режима
+                    if (!isConnected)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8.0),
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.orange, size: 16),
+                            SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Оффлайн режим - функции редактирования и удаления недоступны',
+                                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     // Название и Вес
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
@@ -165,9 +196,11 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           ),
                         ),
                         if (_currentTea.weight != null && _currentTea.weight!.isNotEmpty)
-                          Text(
-                            "${_currentTea.weight}",
-                            style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
+                          Container(
+                            child: Text(
+                              "${_currentTea.weight}",
+                              style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
+                            ),
                           ),
                       ],
                     ),
@@ -212,9 +245,9 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                         margin: const EdgeInsets.only(top: 24), // Отступ сверху, чтобы не прилипало
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1), // Легкий фон
+                          color: Colors.orange.withValues(alpha: 0.1), // Легкий фон
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,19 +283,23 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
   }
 
   void _openGalleryModal(int index) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (context) => ImageGalleryView(images: widget.tea.images, initialIndex: index),
-    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierColor: Colors.black87,
+        builder: (context) => ImageGalleryView(images: _currentTea.images, initialIndex: index),
+      );
+    }
   }
   
   void _showDeleteConfirmationDialog(BuildContext context) {
+    if (!mounted) return;
+    
     showDialog(
       context: this.context, // используем контекст State
       builder: (context) => AlertDialog(
         title: const Text("Подтверждение удаления"),
-        content: Text("Вы действительно хотите удалить чай \"${widget.tea.name}\"?"),
+        content: Text("Вы действительно хотите удалить чай \"${_currentTea.name}\"?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -283,7 +320,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                 final controller = ref.read(teaControllerProvider);
                 
                 success = await controller.deleteTea(
-                  widget.tea.id,
+                  _currentTea.id,
                   onSuccess: () => ref.invalidate(teaListProvider), // Обновляем список
                 );
                 
@@ -304,7 +341,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     if (success) {
                       // Показываем сообщение об успешном удалении
                       ScaffoldMessenger.of(this.context).showSnackBar(
-                        SnackBar(content: Text("Чай \"${widget.tea.name}\" успешно удалён"), backgroundColor: Colors.green),
+                        SnackBar(content: Text("Чай \"${_currentTea.name}\" успешно удалён"), backgroundColor: Colors.green),
                       );
                       
                       // Возвращаемся на главный экран при успешном удалении

@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EditableImage {
   final String? url; // URL для существующего изображения
@@ -142,10 +142,13 @@ class _EditableImagePickerSectionState extends State<EditableImagePickerSection>
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(12),
                                         child: image.isNew
-                                            ? (kIsWeb
-                                                ? Image.network(image.file!.path, fit: BoxFit.cover)
-                                                : Image.file(File(image.file!.path), fit: BoxFit.cover))
-                                            : Image.network(image.url!, fit: BoxFit.cover),
+                                            ? Image.file(File(image.file!.path), fit: BoxFit.cover)
+                                            : CachedNetworkImage(
+                                                imageUrl: image.url!,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                                                errorWidget: (context, url, error) => const Icon(Icons.error),
+                                              ),
                                       ),
                                     ),
                                     Positioned(

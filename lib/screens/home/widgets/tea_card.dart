@@ -1,5 +1,6 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/screens/details/details_screen.dart';
 import 'package:tea/widgets/info_chip.dart';
@@ -48,7 +49,12 @@ class TeaCard extends StatelessWidget {
                   return SizedBox(
                     width: double.infinity,
                     child: path.startsWith('http')
-                        ? Image.network(path, fit: BoxFit.cover)
+                        ? CachedNetworkImage(
+                            imageUrl: path,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) => const Icon(Icons.error),
+                          )
                         : Image.asset(path, fit: BoxFit.cover),
                   );
                 }).toList(),
@@ -92,25 +98,54 @@ class TeaCard extends StatelessWidget {
                   // 5. Вес и Вкусы
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center, // Выравнивание по центру по вертикали
                     children: [
-                      // Вкусы слева
+                      // Вкусы слева (ограничиваем ширину для предотвращения сжатия)
                       Expanded(
-                        child: Wrap(
-                          spacing: 4,
-                          children: tea.flavors
-                              .take(3)
-                              .map((f) => Text("#$f", style: TextStyle(color: Colors.orange[800], fontSize: 12)))
-                              .toList(),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Показываем первые 3 вкусы и, если их больше, добавляем "+N"
+                            final allFlavors = tea.flavors;
+                            final displayedFlavors = allFlavors.take(3).toList();
+                            final extraCount = allFlavors.length - displayedFlavors.length;
+
+                            return Wrap(
+                              spacing: 4,
+                              runSpacing: 0,
+                              children: [
+                                ...displayedFlavors
+                                    .map((f) => Text("#$f", style: TextStyle(color: Colors.orange[800], fontSize: 12)))
+                                    .toList(),
+                                if (extraCount > 0)
+                                  Text(
+                                    "+$extraCount",
+                                    style: TextStyle(
+                                      color: Colors.orange[800],
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
                         ),
                       ),
-                      // Вес справа
-                      Row(
-                        children: [
-                          Icon(Icons.scale, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(tea.weight != null && tea.weight!.isNotEmpty ? "${tea.weight}" : "—", style: const TextStyle(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
+                      // Вес справа (иконка и текст в одной строке)
+                      if (tea.weight != null && tea.weight!.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.scale, size: 16, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              "${tea.weight}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ],

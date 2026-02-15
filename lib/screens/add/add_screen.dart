@@ -9,15 +9,12 @@ import 'package:tea/api/responses/country_response.dart';
 import 'package:tea/api/responses/flavor_response.dart';
 import 'package:tea/api/responses/image_response.dart';
 import 'package:tea/api/responses/type_response.dart';
-import 'package:tea/api/tea_api.dart';
 import 'package:tea/controllers/tea_controller.dart';
-import 'package:tea/models/tea.dart';
 import 'package:tea/providers/metadata_provider.dart';
 import 'package:tea/screens/add/widgets/rich_editor.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
-import 'package:tea/screens/details/details_screen.dart';
 
 import 'widgets/image_picker_section.dart';
 import 'widgets/input_block.dart';
@@ -89,7 +86,7 @@ class _AddScreenState extends ConsumerState<AddScreen> {
       );
 
       // ШАГ 3: Сохранение данных (теперь тоже выбросит Exception при ошибке)
-      final teaResponse = await ref.read(teaControllerProvider).createTeaWithResponse(
+      await ref.read(teaControllerProvider).createTeaWithResponse(
         dto,
         onSuccess: () => ref.invalidate(teaListProvider), // Передаем инвалидацию здесь
       );
@@ -99,12 +96,8 @@ class _AddScreenState extends ConsumerState<AddScreen> {
       context.hideLoading();
       context.showSuccessSnackBar("Чай успешно добавлен!");
       
-      // Навигация к странице деталей нового чая
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => TeaDetailScreen(tea: teaResponse),
-        ),
-      );
+      // Закрываем экран добавления и возвращаемся к главному экрану
+      Navigator.of(context).pop(true);
     } catch (e) {
       // Сюда прилетит ЛЮБАЯ ошибка:
       // - Ошибка загрузки фото
@@ -124,6 +117,8 @@ class _AddScreenState extends ConsumerState<AddScreen> {
   @override
   Widget build(BuildContext context) {
     final metadata = ref.watch(metadataProvider);
+    final controller = ref.watch(teaControllerProvider);
+    final isConnected = controller.isConnected;
 
     return Scaffold(
       appBar: AppBar(
@@ -140,127 +135,162 @@ class _AddScreenState extends ConsumerState<AddScreen> {
                     ),
                   ),
                 )
-              : IconButton(icon: const Icon(Icons.check), onPressed: _isLoading ? null : _handleSave),
+              : IconButton(
+                  icon: const Icon(Icons.check),
+                  onPressed: _isLoading || !isConnected ? null : _handleSave,
+                ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- БЛОК ФОТО ---
-            InputBlock(
-              label: "Изображение",
-              icon: Icons.image_outlined,
-              child: ImagePickerSection(
-                selectedImages: _selectedImages,
-                onImagesChanged: (newList) => setState(() {
-                  _selectedImages.clear();
-                  _selectedImages.addAll(newList);
-                }),
+      body: Column(
+        children: [
+          // Индикатор оффлайн режима
+          if (!isConnected)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8.0),
+              color: Colors.orange.shade100,
+              child: const Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.orange, size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'Оффлайн режим - добавление недоступно',
+                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ),
             ),
+          // Основной контент
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: AbsorbPointer(
+                // Отключаем все поля ввода при оффлайн режиме
+                absorbing: !isConnected,
+                child: Opacity(
+                  // Делаем поля полупрозрачными в оффлайн режиме
+                  opacity: isConnected ? 1.0 : 0.6,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- БЛОК ФОТО ---
+                      InputBlock(
+                        label: "Изображение",
+                        icon: Icons.image_outlined,
+                        child: ImagePickerSection(
+                          selectedImages: _selectedImages,
+                          onImagesChanged: (newList) => setState(() {
+                            _selectedImages.clear();
+                            _selectedImages.addAll(newList);
+                          }),
+                        ),
+                      ),
 
-            InputBlock(
-              label: "Название",
-              icon: Icons.title,
-              child: TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(hintText: "Введите название"),
+                      InputBlock(
+                        label: "Название",
+                        icon: Icons.title,
+                        child: TextField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(hintText: "Введите название"),
+                        ),
+                      ),
+
+                      // Сюда будем добавлять остальные поля (страна, тип и т.д.)
+                      InputBlock(
+                        label: "Страна",
+                        icon: Icons.public,
+                        child: SearchSelector<CountryResponse>(
+                          hint: "Выберите страну",
+                          items: metadata.countries,
+                          selectedValue: _selectedCountry,
+                          itemLabel: (item) => item.name,
+                          // Твой объект CountryResponse.name
+                          onCreate: (newName) => CountryResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
+                          onChanged: (val) => setState(() => _selectedCountry = val),
+                        ),
+                      ),
+
+                      // Сюда будем добавлять остальные поля (страна, тип и т.д.)
+                      InputBlock(
+                        label: "Тип чая",
+                        icon: Icons.eco,
+                        child: SearchSelector<TypeResponse>(
+                          hint: "Выберите тип чая",
+                          items: metadata.types,
+                          selectedValue: _selectedType,
+                          itemLabel: (item) => item.name,
+                          // Твой объект CountryResponse.name
+                          onCreate: (newName) => TypeResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
+                          onChanged: (val) => setState(() => _selectedType = val),
+                        ),
+                      ),
+
+                      InputBlock(
+                        label: "Внешний вид",
+                        icon: Icons.grain, // Попробуй эту для прессованного/рассыпного
+                        child: SearchSelector<AppearanceResponse>(
+                          hint: "Выберите внешний вид",
+                          items: metadata.appearances,
+                          selectedValue: _selectedAppearance,
+                          itemLabel: (item) => item.name,
+                          onCreate: (newName) => AppearanceResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
+                          onChanged: (val) => setState(() => _selectedAppearance = val),
+                        ),
+                      ),
+
+                      InputBlock(
+                        label: "Вкусы",
+                        icon: Icons.psychology_outlined,
+                        child: MultiSearchSelector<FlavorResponse>(
+                          hint: "Выберите вкусы",
+                          items: metadata.flavors,
+                          selectedValues: _selectedFlavors,
+                          itemLabel: (item) => item.name,
+                          onCreate: (newName) => FlavorResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
+                          onChanged: (newList) {
+                            setState(() {
+                              _selectedFlavors = List.from(newList);
+                            });
+                          },
+                        ),
+                      ),
+
+                      InputBlock(
+                        label: "Температура заваривания",
+                        icon: Icons.thermostat,
+                        child: TextField(
+                          controller: _temperatureController,
+                          decoration: const InputDecoration(hintText: "Введите температура"),
+                        ),
+                      ),
+
+                      InputBlock(
+                        label: "Вес",
+                        icon: Icons.scale,
+                        child: TextField(
+                          controller: _weightController,
+                          decoration: const InputDecoration(hintText: "Введите вес"),
+                        ),
+                      ),
+
+                      InputBlock(
+                        label: "Как лучше заварить?",
+                        icon: Icons.timer,
+                        child: RichEditor(controller: _brewingGuide),
+                      ),
+
+                      InputBlock(
+                        label: "Описание",
+                        icon: Icons.description,
+                        child: RichEditor(controller: _description),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-
-            // Сюда будем добавлять остальные поля (страна, тип и т.д.)
-            InputBlock(
-              label: "Страна",
-              icon: Icons.public,
-              child: SearchSelector<CountryResponse>(
-                hint: "Выберите страну",
-                items: metadata.countries,
-                selectedValue: _selectedCountry,
-                itemLabel: (item) => item.name,
-                // Твой объект CountryResponse.name
-                onCreate: (newName) => CountryResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
-                onChanged: (val) => setState(() => _selectedCountry = val),
-              ),
-            ),
-
-            // Сюда будем добавлять остальные поля (страна, тип и т.д.)
-            InputBlock(
-              label: "Тип чая",
-              icon: Icons.eco,
-              child: SearchSelector<TypeResponse>(
-                hint: "Выберите тип чая",
-                items: metadata.types,
-                selectedValue: _selectedType,
-                itemLabel: (item) => item.name,
-                // Твой объект CountryResponse.name
-                onCreate: (newName) => TypeResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
-                onChanged: (val) => setState(() => _selectedType = val),
-              ),
-            ),
-
-            InputBlock(
-              label: "Внешний вид",
-              icon: Icons.grain, // Попробуй эту для прессованного/рассыпного
-              child: SearchSelector<AppearanceResponse>(
-                hint: "Выберите внешний вид",
-                items: metadata.appearances,
-                selectedValue: _selectedAppearance,
-                itemLabel: (item) => item.name,
-                onCreate: (newName) => AppearanceResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
-                onChanged: (val) => setState(() => _selectedAppearance = val),
-              ),
-            ),
-
-            InputBlock(
-              label: "Вкусы",
-              icon: Icons.psychology_outlined,
-              child: MultiSearchSelector<FlavorResponse>(
-                hint: "Выберите вкусы",
-                items: metadata.flavors,
-                selectedValues: _selectedFlavors,
-                itemLabel: (item) => item.name,
-                onCreate: (newName) => FlavorResponse(id: 0, name: newName, createdAt: '', updatedAt: ''),
-                onChanged: (newList) {
-                  setState(() {
-                    _selectedFlavors = List.from(newList);
-                  });
-                },
-              ),
-            ),
-
-            InputBlock(
-              label: "Температура заваривания",
-              icon: Icons.thermostat,
-              child: TextField(
-                controller: _temperatureController,
-                decoration: const InputDecoration(hintText: "Введите температуру"),
-              ),
-            ),
-
-            InputBlock(
-              label: "Вес",
-              icon: Icons.scale,
-              child: TextField(
-                controller: _weightController,
-                decoration: const InputDecoration(hintText: "Введите вес"),
-              ),
-            ),
-
-            InputBlock(
-              label: "Как лучше заварить?",
-              icon: Icons.timer,
-              child: RichEditor(controller: _brewingGuide),
-            ),
-
-            InputBlock(
-              label: "Описание",
-              icon: Icons.description,
-              child: RichEditor(controller: _description),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
