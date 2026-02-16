@@ -5,11 +5,8 @@ workflows:
     max_build_duration: 60
     environment:
       flutter: stable
-      vars:
-        SUPABASE_URL: $SUPABASE_URL # Эти переменные вы уже добавили в интерфейсе Codemagic
-        SUPABASE_KEY: $SUPABASE_KEY
-        API_URL: $API_URL
-        APP_NAME: $APP_NAME
+      groups:
+        - tea-app-variables  # Имя группы переменных, которое вы создадите в интерфейсе
     triggering:
       events:
         - push
@@ -57,11 +54,8 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      vars:
-        SUPABASE_URL: $SUPABASE_URL # Эти переменные вы уже добавили в интерфейсе Codemagic
-        SUPABASE_KEY: $SUPABASE_KEY
-        API_URL: $API_URL
-        APP_NAME: $APP_NAME
+      groups:
+        - tea-app-variables  # Имя группы переменных
     triggering:
       events:
         - push
@@ -124,11 +118,8 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      vars:
-        SUPABASE_URL: $SUPABASE_URL # Эти переменные вы уже добавили в интерфейсе Codemagic
-        SUPABASE_KEY: $SUPABASE_KEY
-        API_URL: $API_URL
-        APP_NAME: $APP_NAME
+      groups:
+        - tea-app-variables  # Имя группы переменных
     triggering:
       events:
         - push
