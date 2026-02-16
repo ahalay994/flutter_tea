@@ -273,7 +273,7 @@ class TeaController {
       
       // После успешной синхронизации кешируем все изображения
       await _cacheAllImages();
-      AppLogger.success('Фоновая синхронизация завершена');
+      AppLogger.debug('Фоновая синхронизация завершена');
     } catch (e) {
       AppLogger.error('Ошибка фоновой синхронизации', error: e);
     }
@@ -732,7 +732,7 @@ class TeaController {
       final updatedTea = teas.firstWhere((tea) => tea.id == teaId, 
           orElse: () => throw Exception("Обновленный чай не найден в списке"));
 
-      AppLogger.success('Чай "${dto.name}" успешно обновлён');
+      AppLogger.debug('Чай "${dto.name}" успешно обновлён');
       return updatedTea;
     } else {
       // Оффлайн режим - не поддерживается

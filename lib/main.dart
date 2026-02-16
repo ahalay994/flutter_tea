@@ -25,22 +25,22 @@ Future<void> loadEnvSafely() async {
     String envContent = await rootBundle.loadString('.env');
     _envVariables = _parseEnvString(envContent);
     await dotenv.load(fileName: ".env"); // Попробуем также загрузить как обычный файл на всякий случай
-    _showToast('Загружен .env файл как ассет');
+    // _showToast('Загружен .env файл как ассет');
   } catch (e) {
-    _showToast('Не удалось загрузить .env файл как ассет: $e');
+    // _showToast('Не удалось загрузить .env файл как ассет: $e');
     try {
       // Если не удалось как ассет, пробуем загрузить как обычный файл
       if (Platform.environment.containsKey('FLUTTER_WEB')) {
         // Для веба не пытаемся загружать .env файл через flutter_dotenv
-        _showToast('Запуск в веб-окружении, используем переменные окружения Dart');
+        // _showToast('Запуск в веб-окружении, используем переменные окружения Dart');
       } else {
         // На мобильных и десктопных платформах пробуем загрузить .env файл
         await dotenv.load(fileName: ".env");
-        _showToast('Загружен .env файл как обычный файл');
+        // _showToast('Загружен .env файл как обычный файл');
       }
     } catch (e2) {
-      _showToast('Не удалось загрузить .env файл как обычный файл: $e2');
-      _showToast('Приложение будет использовать значения по умолчанию из AppConfig');
+      // _showToast('Не удалось загрузить .env файл как обычный файл: $e2');
+      // _showToast('Приложение будет использовать значения по умолчанию из AppConfig');
     }
   }
 }
@@ -86,8 +86,7 @@ String? _getEnvValue(String key) {
 // Вспомогательная функция для показа Toast сообщений
 void _showToast(String message) {
   // Сохраняем вывод в консоль для отладки
-  debugPrint(message);
-  // Показываем сообщение в интерфейсе, если контекст доступен
+          // debugPrint(message);  // Показываем сообщение в интерфейсе, если контекст доступен
   if (navigatorKey.currentState != null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
@@ -146,7 +145,7 @@ Future<void> main() async {
     envSupabaseKey = _getEnvValue('SUPABASE_KEY');
   } catch (e) {
     // Если возникла ошибка доступа к dotenv (например, в вебе), используем только AppConfig
-    _showToast('Ошибка доступа к переменным окружения: $e');
+    // _showToast('Ошибка доступа к переменным окружения: $e');
     envSupabaseUrl = null;
     envSupabaseKey = null;
   }
@@ -158,13 +157,13 @@ Future<void> main() async {
     // Инициализируем Supabase в фоне, чтобы не блокировать запуск приложения
     Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey).then((_) {
       SupabaseService().init(supabaseUrl, supabaseKey);
-      _showToast('Supabase инициализирован успешно');
+      // _showToast('Supabase инициализирован успешно');
     }).catchError((error) {
-      _showToast('Ошибка инициализации Supabase: $error');
+      // _showToast('Ошибка инициализации Supabase: $error');
     });
   } else {
-    _showToast('Не удалось получить настройки Supabase, инициализация не выполнена');
-    _showToast('Убедитесь, что в .env файле указаны правильные значения SUPABASE_URL и SUPABASE_KEY');
+    // _showToast('Не удалось получить настройки Supabase, инициализация не выполнена');
+    // _showToast('Убедитесь, что в .env файле указаны правильные значения SUPABASE_URL и SUPABASE_KEY');
   }
 
   runApp(ProviderScope(child: TeaApp(navigatorKey: navigatorKey)));
@@ -187,7 +186,7 @@ class TeaApp extends StatelessWidget {
       }
     } catch (e) {
       // Если возникла ошибка доступа к dotenv, используем AppConfig
-      _showToast('Ошибка доступа к APP_NAME из dotenv: $e');
+      // _showToast('Ошибка доступа к APP_NAME из dotenv: $e');
     }
     
     return MaterialApp(

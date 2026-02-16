@@ -63,7 +63,7 @@ class TeaService {
         );
       }).toList();
 
-      AppLogger.success('Загружено ${fullTeas.length} чаёв с полными данными');
+      AppLogger.debug('Загружено ${fullTeas.length} чаёв с полными данными');
       return fullTeas;
     } catch (e, stack) {
       AppLogger.error('Ошибка в TeaService', error: e, stackTrace: stack);
@@ -79,7 +79,7 @@ class TeaService {
       await _teaApi.saveTea(dto);
       onSuccess();
 
-      AppLogger.success('Чай "${dto.name}" успешно создан');
+      AppLogger.debug('Чай "${dto.name}" успешно создан');
     } catch (e, stack) {
       AppLogger.error('Ошибка в TeaService при создании чая', error: e, stackTrace: stack);
       rethrow;

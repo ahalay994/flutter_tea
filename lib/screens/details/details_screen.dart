@@ -342,6 +342,9 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                         SnackBar(content: Text("Чай \"${_currentTea.name}\" успешно удалён"), backgroundColor: Colors.green),
                       );
                       
+                      // Обновляем список чаёв на главном экране
+                      // Инвалидируем провайдер, чтобы данные обновились при возврате на главный экран
+                      ref.invalidate(teaListProvider);
                       // Возвращаемся на главный экран при успешном удалении
                       Navigator.of(this.context).pop(); // Закрываем экран деталей
                     } else {

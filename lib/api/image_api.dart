@@ -28,7 +28,7 @@ class ImageApi {
         fileBytes: Uint8List.fromList(bytes),
       );
       
-      AppLogger.success('Изображение успешно загружено в Supabase: ${image.name}');
+      AppLogger.debug('Изображение успешно загружено в Supabase: ${image.name}');
       
       // Возвращаем ImageResponse с правильной структурой, как ожидает бэкенд
       return ImageResponse(

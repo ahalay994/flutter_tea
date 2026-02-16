@@ -37,7 +37,7 @@ class AppLogger {
       await file.writeAsString(logEntry, mode: FileMode.append);
     } catch (e) {
       // Используем debugPrint, так как print может быть запрещен линтером
-      debugPrint("Не удалось записать лог в файл: $e");
+      // debugPrint("Не удалось записать лог в файл: $e");
     }
   }
 
@@ -45,7 +45,7 @@ class AppLogger {
   static void error(String message, {Object? error, StackTrace? stackTrace}) {
     if (kDebugMode) {
       dev.log('❌ $message', name: _tag, error: error, stackTrace: stackTrace);
-      debugPrint('[$_tag] ❌ ERROR: $message ${error ?? ''}');
+      // debugPrint('[$_tag] ❌ ERROR: $message ${error ?? ''}');
     }
 
     // Запись в файл (пропустится автоматически, если это Web)
@@ -56,7 +56,7 @@ class AppLogger {
   static void debug(String message) {
     if (kDebugMode) {
       dev.log('ℹ️ $message', name: _tag);
-      debugPrint('[$_tag] ℹ️ DEBUG: $message');
+      // debugPrint('[$_tag] ℹ️ DEBUG: $message');
     }
     _writeToFile('DEBUG', message);
   }
@@ -65,7 +65,7 @@ class AppLogger {
   static void success(String message) {
     if (kDebugMode) {
       dev.log('✅ $message', name: _tag);
-      debugPrint('[$_tag] ✅ SUCCESS: $message');
+      // debugPrint('[$_tag] ✅ SUCCESS: $message');
     }
     _writeToFile('SUCCESS', message);
   }
