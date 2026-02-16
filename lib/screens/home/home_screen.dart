@@ -232,20 +232,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
     
-    // Отслеживаем изменения в флаге обновления списка чаёв
+    // Отслеживаем изменения флага обновления списка чаёв
     ref.listen(refreshTeaListProvider, (previous, next) {
-      if (next == true) {
-        // Сбрасываем флаг и перезагружаем список
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            ref.read(refreshTeaListProvider.notifier).reset();
-            setState(() {
-              _currentPage = 1;
-              _allTeas = [];
-            });
-            _loadFirstPage();
-          }
-        });
+      if (previous == false && next == true) {
+        AppLogger.debug('Получен сигнал об обновлении списка чаёв');
+        // Перезагружаем список при получении сигнала обновления
+        if (mounted) {
+          setState(() {
+            _currentPage = 1;
+            _allTeas = [];
+          });
+          _loadFirstPage();
+        }
       }
     });
     

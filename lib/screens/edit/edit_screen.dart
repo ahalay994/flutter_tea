@@ -69,15 +69,34 @@ class _EditScreenState extends ConsumerState<EditScreen> {
     );
 
     try {
-      await ref.read(teaControllerProvider).updateTea(widget.tea.id, updatedTea, onSuccess: () {
-        // Инвалидируем список чаёв
-        ref.invalidate(teaListProvider(1));
-        // Устанавливаем флаг обновления
-        ref.read(refreshTeaListProvider.notifier).triggerRefresh();
-      });
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
+      final updatedTea = CreateTeaDto(
+        name: _nameController.text,
+        description: _descriptionController.text,
+        images: [], // В оффлайн-режиме не поддерживаем изменение изображений
+        appearanceId: _selectedAppearance?.id,
+        countryId: _selectedCountry?.id,
+        flavors: _selectedFlavors.map((f) => f.id).toList(),
+        typeId: _selectedType?.id,
+        temperature: _temperatureController.text,
+        weight: _weightController.text,
+        brewingGuide: widget.tea.brewingGuide, // Пока не редактируем brewingGuide
+      );
+
+            await ref.read(teaControllerProvider).updateTea(widget.tea.id, updatedTea, onSuccess: () {
+
+              // Устанавливаем флаг обновления
+
+              ref.read(refreshTeaListProvider.notifier).triggerRefresh();
+
+            });
+
+            
+
+            if (mounted) {
+
+              Navigator.of(context).pop(true);
+
+            }
     } catch (e) {
       if (mounted) {
         context.showErrorDialog('Ошибка при сохранении: ${e.toString()}');

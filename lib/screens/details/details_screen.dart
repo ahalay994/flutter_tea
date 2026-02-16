@@ -96,7 +96,14 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           MaterialPageRoute(
                             builder: (context) => EditScreen(tea: _currentTea),
                           ),
-                        );
+                        ).then((result) {
+                          // Проверяем, было ли что-то изменено
+                          if (result == true) {
+                            // Если была успешная операция редактирования, 
+                            // вызываем обновление данных
+                            ref.read(refreshTeaListProvider.notifier).triggerRefresh();
+                          }
+                        });
                       }
                     },
                   ),

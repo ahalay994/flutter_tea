@@ -3,6 +3,7 @@ import 'package:tea/api/responses/appearance_response.dart';
 import 'package:tea/api/responses/country_response.dart';
 import 'package:tea/api/responses/flavor_response.dart';
 import 'package:tea/api/responses/type_response.dart';
+import 'package:tea/controllers/tea_controller.dart';
 
 // Класс-хранилище всех справочников
 class TeaMetadata {
@@ -14,17 +15,19 @@ class TeaMetadata {
   TeaMetadata({this.appearances = const [], this.countries = const [], this.flavors = const [], this.types = const []});
 }
 
-// Глобальный провайдер
-class MetadataNotifier extends Notifier<TeaMetadata> {
-  @override
-  TeaMetadata build() => TeaMetadata();
-
-  // Метод для обновления (вместо .state = ...)
-  void update(TeaMetadata newData) {
-    state = newData;
+// Асинхронный провайдер для метаданных
+final metadataProvider = FutureProvider<TeaMetadata>((ref) async {
+  final controller = ref.read(teaControllerProvider);
+  try {
+    final metadata = await controller._getMetadata();
+    return TeaMetadata(
+      countries: metadata['countries'] as List<CountryResponse>,
+      types: metadata['types'] as List<TypeResponse>,
+      appearances: metadata['appearances'] as List<AppearanceResponse>,
+      flavors: metadata['flavors'] as List<FlavorResponse>,
+    );
+  } catch (e) {
+    // Возвращаем пустые списки в случае ошибки
+    return TeaMetadata();
   }
-}
-
-final metadataProvider = NotifierProvider<MetadataNotifier, TeaMetadata>(() {
-  return MetadataNotifier();
 });
