@@ -319,7 +319,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                 
                 success = await controller.deleteTea(
                   _currentTea.id,
-                  onSuccess: () => ref.invalidate(teaListProvider), // Обновляем список
+                  onSuccess: () => ref.invalidate(teaListProvider(1)), // Обновляем список
                 );
                 
                 if (!success) {
@@ -344,7 +344,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       
                       // Обновляем список чаёв на главном экране
                       // Инвалидируем провайдер, чтобы данные обновились при возврате на главный экран
-                      ref.invalidate(teaListProvider);
+                      ref.invalidate(teaListProvider(1));
                       // Возвращаемся на главный экран при успешном удалении
                       Navigator.of(this.context).pop(); // Закрываем экран деталей
                     } else {

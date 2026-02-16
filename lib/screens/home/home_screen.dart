@@ -232,6 +232,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
     
+    // Отслеживаем инвалидацию провайдера списка чаёв и перезагружаем данные
+    // Это нужно для обновления списка после добавления/удаления/редактирования
+    ref.listen(
+      teaListProvider(1), // Отслеживаем первую страницу списка чаёв
+      (previous, next) {},
+      onError: (error, stackTrace) {
+        // При ошибке или инвалидации также перезагружаем данные
+        if (mounted) {
+          _loadFirstPage();
+        }
+      },
+    );
+    
     // Слушаем провайдер параметров фильтрации
     final filterParams = ref.watch(filterParamsProvider);
     // Проверяем, есть ли активные фильтры (не пустые значения)

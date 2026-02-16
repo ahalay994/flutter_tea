@@ -88,7 +88,12 @@ class _AddScreenState extends ConsumerState<AddScreen> {
       // ШАГ 3: Сохранение данных (теперь тоже выбросит Exception при ошибке)
       await ref.read(teaControllerProvider).createTeaWithResponse(
         dto,
-        onSuccess: () => ref.invalidate(teaListProvider), // Передаем инвалидацию здесь
+        onSuccess: () {
+          // Инвалидируем провайдер для страницы 1, чтобы обновить список чаёв
+          ref.invalidate(teaListProvider(1));
+          // Также инвалидируем фильтрованный список, если используется
+          // ref.invalidate(filteredTeaListProvider); // Этот провайдер имеет параметры, которые нужно указать
+        },
       );
 
       if (!mounted) return;
