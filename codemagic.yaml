@@ -85,7 +85,8 @@ workflows:
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
-          flutter build ios --release --no-codesign
+          # Создаем архив с помощью xcodebuild
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -archivePath "build/ios/archive/Runner.xcarchive" archive
           # Создаем plist файл с настройками экспорта
           cat > export_options.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -153,7 +154,8 @@ workflows:
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
-          flutter build ios --release --no-codesign
+          # Создаем архив с помощью xcodebuild
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -archivePath "build/ios/archive/Runner.xcarchive" archive
           # Создаем plist файл с настройками экспорта
           cat > export_options.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
