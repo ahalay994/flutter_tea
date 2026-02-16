@@ -46,10 +46,14 @@
 2. Установите зависимости: `flutter pub get`
 3. Создайте файл `.env` в корне проекта с содержимым:
    ```
+   APP_NAME=Название вашего приложения
    API_URL=your_api_base_url
-   APP_NAME=Tea App
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_KEY=your_supabase_key
    ```
 4. Запустите приложение: `flutter run`
+
+**ВАЖНО**: Название приложения (APP_NAME) будет отображаться на иконке приложения в системах Android и iOS. Убедитесь, что вы используете подходящее название в переменной APP_NAME.
 
 ## Структура проекта
 
