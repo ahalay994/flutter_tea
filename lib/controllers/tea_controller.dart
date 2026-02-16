@@ -271,6 +271,8 @@ class TeaController {
         }
       }
       
+      // После успешной синхронизации кешируем все изображения
+      await _cacheAllImages();
       AppLogger.success('Фоновая синхронизация завершена');
     } catch (e) {
       AppLogger.error('Ошибка фоновой синхронизации', error: e);
@@ -860,8 +862,8 @@ class TeaController {
   // Метод для кеширования всех изображений
   Future<void> _cacheAllImages() async {
     try {
-      final imageUrls = await _localDatabase.getAllImageUrls();
-      AppLogger.debug('Начинаем кеширование ${imageUrls.length} изображений');
+      final imageUrls = await _localDatabase.getUniqueImageUrls();
+      AppLogger.debug('Начинаем кеширование ${imageUrls.length} уникальных изображений');
       
       // Кешируем изображения по одному, чтобы не перегружать систему
       for (final imageUrl in imageUrls) {
@@ -870,7 +872,7 @@ class TeaController {
           await CustomCacheManager.instance.getSingleFile(imageUrl);
           AppLogger.debug('Изображение закешировано: $imageUrl');
         } catch (e) {
-          AppLogger.error('Ошибка при кешировании изображения', error: e);
+          AppLogger.error('Ошибка при кешировании изображения: $imageUrl', error: e);
         }
       }
     } catch (e) {

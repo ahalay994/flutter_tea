@@ -270,12 +270,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _totalCount > 0 
-                      ? 'Фильтры активны: $_totalCount позиций'
-                      : 'Фильтры активны',
-                    style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.w500),
+                  Expanded(
+                    child: Text(
+                      _totalCount > 0 
+                        ? 'Фильтры активны: $_totalCount позиций'
+                        : 'Фильтры активны',
+                      style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis, // Добавляем усечение текста
+                    ),
                   ),
+                  const SizedBox(width: 8), // Небольшой отступ между текстом и кнопкой
                   TextButton(
                     onPressed: _resetFilters,
                     child: Text('Сбросить', style: TextStyle(color: Colors.blue[800])),
@@ -292,12 +296,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Text(
                 'Всего чаёв: $_totalCount',
                 style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis, // Добавляем усечение текста
               ),
             ),
           // Список чаёв
           Expanded(
             child: _allTeas.isEmpty && _isLoadingMore
-                ? const Center(child: AnimatedLoader(size: 50))
+                ? AnimatedLoader(size: 100) // Убираем Center, так как AnimatedLoader теперь растягивается на всю ширину
                 : RefreshIndicator(
                     onRefresh: () async {
                       _currentPage = 1;

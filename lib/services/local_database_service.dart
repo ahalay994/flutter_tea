@@ -403,6 +403,18 @@ class LocalDatabaseService {
     final List<Map<String, dynamic>> imageMaps = await db.query('tea_images');
     return imageMaps.map((map) => map['url'] as String).where((url) => url.startsWith('http')).toList();
   }
+  
+  // Метод для получения уникальных URL изображений для кеширования
+  Future<List<String>> getUniqueImageUrls() async {
+    final db = await database;
+    final List<Map<String, dynamic>> imageMaps = await db.query('tea_images', 
+        columns: ['url'], 
+        where: 'url LIKE ?', 
+        whereArgs: ['http%']);
+    final urls = imageMaps.map((map) => map['url'] as String).toList();
+    // Возвращаем только уникальные URL
+    return urls.toSet().toList();
+  }
 
 
 
