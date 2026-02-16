@@ -5,8 +5,6 @@ workflows:
     max_build_duration: 60
     environment:
       flutter: stable
-      android_signing:
-        - tea_android_signing # Укажите ваш набор данных для подписи Android
       vars:
         SUPABASE_URL: $SUPABASE_URL # Эти переменные вы уже добавили в интерфейсе Codemagic
         SUPABASE_KEY: $SUPABASE_KEY
@@ -63,9 +61,6 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      ios_signing:
-        distribution_type: app_store # или ad_hoc или development
-        bundle_identifier: com.example.tea
       vars:
         SUPABASE_URL: $SUPABASE_URL # Эти переменные вы уже добавили в интерфейсе Codemagic
         SUPABASE_KEY: $SUPABASE_KEY
