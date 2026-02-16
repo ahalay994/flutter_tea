@@ -7,7 +7,6 @@ workflows:
       flutter: 3.10.8
       groups:
         - tea-app-variables  # Имя группы переменных, которое вы создадите в интерфейсе
-      android-sdk: default
     triggering:
       events:
         - push
