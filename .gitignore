@@ -47,5 +47,4 @@ app.*.map.json
 /android/build/reports/problems/problems-report.html
 /AGENTS.md
 
-test/*
 build-install/*
