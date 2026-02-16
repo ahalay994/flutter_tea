@@ -92,8 +92,21 @@ workflows:
       - name: Build iOS IPA
         script: |
           flutter build ios --release --no-codesign
-          # Создаем IPA вручную из архива
-          xcodebuild -exportArchive -archivePath "build/ios/archive/Runner.xcarchive" -exportPath "build/ios/ipa" -exportFormat IPA -destination generic/platform=iOS
+          # Создаем plist файл с настройками экспорта
+          cat > export_options.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>destination</key>
+              <string>export</string>
+          </dict>
+          </plist>
+          EOF
+          # Экспортируем IPA файл
+          xcodebuild -exportArchive -archivePath "build/ios/archive/Runner.xcarchive" -exportPath "build/ios/ipa" -exportOptionsPlist export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
@@ -150,8 +163,21 @@ workflows:
       - name: Build iOS IPA
         script: |
           flutter build ios --release --no-codesign
-          # Создаем IPA вручную из архива
-          xcodebuild -exportArchive -archivePath "build/ios/archive/Runner.xcarchive" -exportPath "build/ios/ipa" -exportFormat IPA -destination generic/platform=iOS
+          # Создаем plist файл с настройками экспорта
+          cat > export_options.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>destination</key>
+              <string>export</string>
+          </dict>
+          </plist>
+          EOF
+          # Экспортируем IPA файл
+          xcodebuild -exportArchive -archivePath "build/ios/archive/Runner.xcarchive" -exportPath "build/ios/ipa" -exportOptionsPlist export_options.plist
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
       - build/ios/ipa/*.ipa
