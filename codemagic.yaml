@@ -85,8 +85,8 @@ workflows:
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
-          # Создаем архив с помощью xcodebuild
-          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -archivePath "build/ios/archive/Runner.xcarchive" archive
+          # Создаем архив с помощью xcodebuild с отключенной подписью
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath "build/ios/archive/Runner.xcarchive" -allowProvisioningUpdates -allowProvisioningDeviceRegistration archive
           # Создаем plist файл с настройками экспорта
           cat > export_options.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -97,6 +97,10 @@ workflows:
               <string>development</string>
               <key>destination</key>
               <string>export</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>signingCertificate</key>
+              <string>-</string>
           </dict>
           </plist>
           EOF
@@ -154,8 +158,8 @@ workflows:
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
-          # Создаем архив с помощью xcodebuild
-          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -archivePath "build/ios/archive/Runner.xcarchive" archive
+          # Создаем архив с помощью xcodebuild с отключенной подписью
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath "build/ios/archive/Runner.xcarchive" -allowProvisioningUpdates -allowProvisioningDeviceRegistration archive
           # Создаем plist файл с настройками экспорта
           cat > export_options.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -166,6 +170,10 @@ workflows:
               <string>development</string>
               <key>destination</key>
               <string>export</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>signingCertificate</key>
+              <string>-</string>
           </dict>
           </plist>
           EOF
