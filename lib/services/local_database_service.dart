@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -10,14 +11,26 @@ import 'package:tea/api/responses/flavor_response.dart';
 
 class LocalDatabaseService {
   static Database? _database;
+  
+  // Веб-версия использует in-memory хранилище
+  Map<String, dynamic>? _webStorage;
 
   Future<Database> get database async {
+    if (kIsWeb) {
+      // Для веба возвращаем null, так как мы используем in-memory хранилище
+      throw StateError('Database is not available in web environment');
+    }
+    
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
   }
 
   Future<Database> _initDatabase() async {
+    if (kIsWeb) {
+      throw StateError('Database is not available in web environment');
+    }
+    
     String path = join(await getDatabasesPath(), 'tea_database.db');
     return await openDatabase(
       path,
@@ -31,7 +44,7 @@ class LocalDatabaseService {
     await db.execute('''
       CREATE TABLE teas (
         id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,ещё
+        name TEXT NOT NULL,
         countryId INTEGER,
         typeId INTEGER,
         appearanceId INTEGER,
@@ -146,12 +159,29 @@ class LocalDatabaseService {
     }
   }
 
-  Future<void> insertTea(TeaModel tea) async {
-    final db = await database;
+  // Инициализация in-memory хранилища для веба
+  Map<String, dynamic> _getWebStorage() {
+    _webStorage ??= {
+      'teas': <Map<String, dynamic>>[],
+      'tea_flavors': <Map<String, dynamic>>[],
+      'tea_images': <Map<String, dynamic>>[],
+      'countries': <Map<String, dynamic>>[],
+      'types': <Map<String, dynamic>>[],
+      'appearances': <Map<String, dynamic>>[],
+      'flavors': <Map<String, dynamic>>[],
+    };
+    return _webStorage!;
+  }
 
-    await db.transaction((txn) async {
-      // Вставляем или обновляем чай
-      await txn.insert('teas', {
+  Future<void> insertTea(TeaModel tea) async {
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      // Удаляем существующий чай
+      storage['teas'].removeWhere((item) => item['id'] == tea.id);
+      
+      // Добавляем чай
+      storage['teas'].add({
         'id': tea.id,
         'name': tea.name,
         'countryId': tea.country != null ? int.tryParse(tea.country!) : null,
@@ -163,25 +193,23 @@ class LocalDatabaseService {
         'description': tea.description,
         'createdAt': DateTime.now().toIso8601String(),
         'updatedAt': DateTime.now().toIso8601String(),
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      });
 
       // Удаляем старые вкусы
-      await txn.delete('tea_flavors', where: 'teaId = ?', whereArgs: [tea.id]);
-
-      // Вставляем новые вкусы
+      storage['tea_flavors'].removeWhere((item) => item['teaId'] == tea.id);
+      // Добавляем новые вкусы
       for (String flavor in tea.flavors) {
         int? flavorId = int.tryParse(flavor);
         if (flavorId != null) {
-          await txn.insert('tea_flavors', {'teaId': tea.id, 'flavorId': flavorId});
+          storage['tea_flavors'].add({'teaId': tea.id, 'flavorId': flavorId});
         }
       }
 
       // Удаляем старые изображения
-      await txn.delete('tea_images', where: 'teaId = ?', whereArgs: [tea.id]);
-
-      // Вставляем новые изображения
+      storage['tea_images'].removeWhere((item) => item['teaId'] == tea.id);
+      // Добавляем новые изображения
       for (String imageUrl in tea.images) {
-        await txn.insert('tea_images', {
+        storage['tea_images'].add({
           'teaId': tea.id,
           'name': imageUrl.split('/').last,
           'status': 'finished',
@@ -190,14 +218,11 @@ class LocalDatabaseService {
           'updatedAt': DateTime.now().toIso8601String(),
         });
       }
-    });
-  }
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
 
-  Future<void> insertTeas(List<TeaModel> teas) async {
-    final db = await database;
-
-    await db.transaction((txn) async {
-      for (final tea in teas) {
+      await db.transaction((txn) async {
         // Вставляем или обновляем чай
         await txn.insert('teas', {
           'id': tea.id,
@@ -238,135 +263,159 @@ class LocalDatabaseService {
             'updatedAt': DateTime.now().toIso8601String(),
           });
         }
-      }
-    });
+      });
+    }
+  }
+
+  Future<void> insertTeas(List<TeaModel> teas) async {
+    for (final tea in teas) {
+      await insertTea(tea);
+    }
   }
 
   Future<List<TeaModel>> getAllTeas() async {
-    final db = await database;
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      final List<TeaModel> teas = [];
 
-    final List<Map<String, dynamic>> teaMaps = await db.query('teas', orderBy: 'id DESC');
+      for (final teaMap in storage['teas']) {
+        // Получаем вкусы для этого чая
+        final flavorMaps = storage['tea_flavors'].where((map) => map['teaId'] == teaMap['id']).toList();
+        final List<String> flavors = flavorMaps.map((map) => map['flavorId'].toString()).toList();
 
-    final List<TeaModel> teas = [];
+        // Получаем изображения для этого чая
+        final imageMaps = storage['tea_images'].where((map) => map['teaId'] == teaMap['id']).toList();
+        final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
 
-    for (final teaMap in teaMaps) {
-      // Получаем вкусы для этого чая
-      final List<Map<String, dynamic>> flavorMaps = await db.query(
-        'tea_flavors',
-        where: 'teaId = ?',
-        whereArgs: [teaMap['id']],
-      );
+        teas.add(
+          TeaModel(
+            id: teaMap['id'],
+            name: teaMap['name'],
+            country: teaMap['countryId']?.toString(),
+            type: teaMap['typeId']?.toString(),
+            appearance: teaMap['appearanceId']?.toString(),
+            temperature: teaMap['temperature'],
+            brewingGuide: teaMap['brewingGuide'],
+            weight: teaMap['weight'],
+            description: teaMap['description'],
+            flavors: flavors,
+            images: images,
+          ),
+        );
+      }
 
-      final List<String> flavors = flavorMaps.map((map) => map['flavorId'].toString()).toList();
+      return teas;
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
 
-      // Получаем изображения для этого чая
-      final List<Map<String, dynamic>> imageMaps = await db.query(
-        'tea_images',
-        where: 'teaId = ?',
-        whereArgs: [teaMap['id']],
-        orderBy: 'id ASC',
-      );
+      final List<Map<String, dynamic>> teaMaps = await db.query('teas', orderBy: 'id DESC');
 
-      final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
+      final List<TeaModel> teas = [];
 
-      teas.add(
-        TeaModel(
-          id: teaMap['id'],
-          name: teaMap['name'],
-          country: teaMap['countryId']?.toString(),
-          type: teaMap['typeId']?.toString(),
-          appearance: teaMap['appearanceId']?.toString(),
-          temperature: teaMap['temperature'],
-          brewingGuide: teaMap['brewingGuide'],
-          weight: teaMap['weight'],
-          description: teaMap['description'],
-          flavors: flavors,
-          images: images,
-        ),
-      );
+      for (final teaMap in teaMaps) {
+        // Получаем вкусы для этого чая
+        final List<Map<String, dynamic>> flavorMaps = await db.query(
+          'tea_flavors',
+          where: 'teaId = ?',
+          whereArgs: [teaMap['id']],
+        );
+
+        final List<String> flavors = flavorMaps.map((map) => map['flavorId'].toString()).toList();
+
+        // Получаем изображения для этого чая
+        final List<Map<String, dynamic>> imageMaps = await db.query(
+          'tea_images',
+          where: 'teaId = ?',
+          whereArgs: [teaMap['id']],
+          orderBy: 'id ASC',
+        );
+
+        final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
+
+        teas.add(
+          TeaModel(
+            id: teaMap['id'],
+            name: teaMap['name'],
+            country: teaMap['countryId']?.toString(),
+            type: teaMap['typeId']?.toString(),
+            appearance: teaMap['appearanceId']?.toString(),
+            temperature: teaMap['temperature'],
+            brewingGuide: teaMap['brewingGuide'],
+            weight: teaMap['weight'],
+            description: teaMap['description'],
+            flavors: flavors,
+            images: images,
+          ),
+        );
+      }
+
+      return teas;
     }
-
-    return teas;
   }
 
   // Метод для получения чаёв с пагинацией
   Future<List<TeaModel>> getTeasPaginated({int page = 1, int perPage = 10}) async {
-    final db = await database;
-
-    final offset = (page - 1) * perPage;
-
-    final List<Map<String, dynamic>> teaMaps = await db.query(
-      'teas',
-      orderBy: 'id DESC', // Сортировка по ID по убыванию
-      limit: perPage,
-      offset: offset,
-    );
-
-    final List<TeaModel> teas = [];
-
-    for (final teaMap in teaMaps) {
-      // Получаем вкусы для этого чая
-      final List<Map<String, dynamic>> flavorMaps = await db.query(
-        'tea_flavors',
-        where: 'teaId = ?',
-        whereArgs: [teaMap['id']],
-      );
-
-      final List<String> flavors = flavorMaps.map((map) => map['flavorId'].toString()).toList();
-
-      // Получаем изображения для этого чая
-      final List<Map<String, dynamic>> imageMaps = await db.query(
-        'tea_images',
-        where: 'teaId = ?',
-        whereArgs: [teaMap['id']],
-        orderBy: 'id ASC',
-      );
-
-      final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
-
-      teas.add(
-        TeaModel(
-          id: teaMap['id'],
-          name: teaMap['name'],
-          country: teaMap['countryId']?.toString(),
-          type: teaMap['typeId']?.toString(),
-          appearance: teaMap['appearanceId']?.toString(),
-          temperature: teaMap['temperature'],
-          brewingGuide: teaMap['brewingGuide'],
-          weight: teaMap['weight'],
-          description: teaMap['description'],
-          flavors: flavors,
-          images: images,
-        ),
-      );
-    }
-
-    return teas;
+    final teas = await getAllTeas();
+    final startIndex = (page - 1) * perPage;
+    final endIndex = startIndex + perPage;
+    
+    if (startIndex >= teas.length) return [];
+    
+    return teas.sublist(startIndex, endIndex > teas.length ? teas.length : endIndex);
   }
 
   // Метод для получения общего количества чаёв
   Future<int> getTotalTeasCount() async {
-    final db = await database;
-    final result = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM teas'));
-    return result ?? 0;
+    if (kIsWeb) {
+      final storage = _getWebStorage();
+      return storage['teas'].length;
+    } else {
+      final db = await database;
+      final result = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM teas'));
+      return result ?? 0;
+    }
   }
 
   Future<void> deleteTea(int id) async {
-    final db = await database;
-    await db.delete('teas', where: 'id = ?', whereArgs: [id]);
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      storage['teas'].removeWhere((item) => item['id'] == id);
+      storage['tea_flavors'].removeWhere((item) => item['teaId'] == id);
+      storage['tea_images'].removeWhere((item) => item['teaId'] == id);
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      await db.delete('teas', where: 'id = ?', whereArgs: [id]);
+    }
   }
 
   Future<void> clearAll() async {
-    final db = await database;
-    await db.transaction((txn) async {
-      await txn.delete('tea_images');
-      await txn.delete('tea_flavors');
-      await txn.delete('teas');
-    });
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      storage['teas'].clear();
+      storage['tea_flavors'].clear();
+      storage['tea_images'].clear();
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      await db.transaction((txn) async {
+        await txn.delete('tea_images');
+        await txn.delete('tea_flavors');
+        await txn.delete('teas');
+      });
+    }
   }
 
   // Метод для получения папки кеша изображений
   Future<String> get _imageCachePath async {
+    if (kIsWeb) {
+      return ''; // Для веба возвращаем пустую строку
+    }
+    
     final directory = await getApplicationDocumentsDirectory();
     final path = '${directory.path}/image_cache';
     await Directory(path).create(recursive: true);
@@ -375,6 +424,11 @@ class LocalDatabaseService {
 
   // Метод для сохранения изображения в локальный кеш
   Future<String> cacheImage(String imageUrl) async {
+    if (kIsWeb) {
+      // В вебе просто возвращаем оригинальный URL
+      return imageUrl;
+    }
+    
     try {
       // Генерируем имя файла из URL
       final fileName = Uri.parse(imageUrl).pathSegments.last;
@@ -397,6 +451,14 @@ class LocalDatabaseService {
 
   // Метод для получения всех URL изображений для кеширования
   Future<List<String>> getAllImageUrls() async {
+    if (kIsWeb) {
+      final storage = _getWebStorage();
+      return storage['tea_images']
+          .map((map) => map['url'] as String)
+          .where((url) => url.startsWith('http'))
+          .toList();
+    }
+    
     final db = await database;
     final List<Map<String, dynamic>> imageMaps = await db.query('tea_images');
     return imageMaps.map((map) => map['url'] as String).where((url) => url.startsWith('http')).toList();
@@ -404,6 +466,16 @@ class LocalDatabaseService {
   
   // Метод для получения уникальных URL изображений для кеширования
   Future<List<String>> getUniqueImageUrls() async {
+    if (kIsWeb) {
+      final storage = _getWebStorage();
+      final urls = storage['tea_images']
+          .map((map) => map['url'] as String)
+          .where((url) => url.startsWith('http'))
+          .toList();
+      // Возвращаем только уникальные URL
+      return urls.toSet().toList();
+    }
+    
     final db = await database;
     final List<Map<String, dynamic>> imageMaps = await db.query('tea_images', 
         columns: ['url'], 
@@ -413,8 +485,6 @@ class LocalDatabaseService {
     // Возвращаем только уникальные URL
     return urls.toSet().toList();
   }
-
-
 
   // Метод для получения отфильтрованных чаёв с пагинацией с заполненными названиями из метаданных
   Future<List<TeaModel>> getFilteredTeasWithNames({
@@ -430,71 +500,181 @@ class LocalDatabaseService {
     required List<AppearanceResponse> appearances,
     required List<FlavorResponse> flavors,
   }) async {
-    final db = await database;
-
-    final offset = (page - 1) * perPage;
-
-    // Начинаем формировать SQL запрос
-    String sql = '''
-      SELECT t.* FROM teas t
-      LEFT JOIN tea_flavors tf ON t.id = tf.teaId
-      WHERE 1=1
-    ''';
+    final teas = await getAllTeas();
     
-    final whereArgs = <dynamic>[];
+    // Применяем фильтрацию
+    final filteredTeas = teas.where((tea) {
+      // Поиск по тексту
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        bool matches = tea.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            (tea.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+            (tea.brewingGuide?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+            (tea.temperature?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+            (tea.weight?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false);
+        if (!matches) return false;
+      }
 
-    // Добавляем условия фильтрации
-    if (searchQuery != null && searchQuery.isNotEmpty) {
-      sql += '''
-        AND (
-          t.name LIKE ? OR 
-          t.description LIKE ? OR 
-          t.brewingGuide LIKE ? OR 
-          t.temperature LIKE ? OR 
-          t.weight LIKE ?
-        )
-      ''';
-      final searchPattern = '%$searchQuery%';
-      whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
-    }
+      // Фильтрация по странам
+      if (countryIds.isNotEmpty) {
+        int? teaCountryId = tea.country != null ? int.tryParse(tea.country!) : null;
+        if (teaCountryId != null && !countryIds.contains(teaCountryId)) {
+          return false;
+        }
+      }
 
-    if (countryIds.isNotEmpty) {
-      final placeholders = countryIds.map((_) => '?').join(',');
-      sql += ' AND t.countryId IN ($placeholders) ';
-      whereArgs.addAll(countryIds);
-    }
+      // Фильтрация по типам
+      if (typeIds.isNotEmpty) {
+        int? teaTypeId = tea.type != null ? int.tryParse(tea.type!) : null;
+        if (teaTypeId != null && !typeIds.contains(teaTypeId)) {
+          return false;
+        }
+      }
 
-    if (typeIds.isNotEmpty) {
-      final placeholders = typeIds.map((_) => '?').join(',');
-      sql += ' AND t.typeId IN ($placeholders) ';
-      whereArgs.addAll(typeIds);
-    }
+      // Фильтрация по внешним видам
+      if (appearanceIds.isNotEmpty) {
+        int? teaAppearanceId = tea.appearance != null ? int.tryParse(tea.appearance!) : null;
+        if (teaAppearanceId != null && !appearanceIds.contains(teaAppearanceId)) {
+          return false;
+        }
+      }
 
-    if (appearanceIds.isNotEmpty) {
-      final placeholders = appearanceIds.map((_) => '?').join(',');
-      sql += ' AND t.appearanceId IN ($placeholders) ';
-      whereArgs.addAll(appearanceIds);
-    }
+      // Фильтрация по вкусам
+      if (flavorIds.isNotEmpty) {
+        final teaFlavorIds = tea.flavors.map((f) => int.tryParse(f)).where((id) => id != null).cast<int>().toList();
+        if (!teaFlavorIds.any((flavorId) => flavorIds.contains(flavorId))) {
+          return false;
+        }
+      }
 
-    if (flavorIds.isNotEmpty) {
-      final placeholders = flavorIds.map((_) => '?').join(',');
-      sql += ' AND tf.flavorId IN ($placeholders) ';
-      whereArgs.addAll(flavorIds);
-    }
+      return true;
+    }).toList();
 
-    // Добавляем группировку и лимит
-    sql += '''
-      GROUP BY t.id
-      ORDER BY t.id DESC
-      LIMIT ? OFFSET ?
-    ''';
-    whereArgs.addAll([perPage, offset]);
+    // Применяем пагинацию
+    final startIndex = (page - 1) * perPage;
+    final endIndex = startIndex + perPage;
+    
+    if (startIndex >= filteredTeas.length) return [];
+    
+    final pageTeas = filteredTeas.sublist(startIndex, endIndex > filteredTeas.length ? filteredTeas.length : endIndex);
 
-    final List<Map<String, dynamic>> teaMaps = await db.rawQuery(sql, whereArgs);
+    // Заполняем названиями из метаданных
+    return pageTeas.map((tea) => TeaModel.fromLocalDB(
+      id: tea.id,
+      name: tea.name,
+      countryId: tea.country,
+      typeId: tea.type,
+      appearanceId: tea.appearance,
+      temperature: tea.temperature,
+      brewingGuide: tea.brewingGuide,
+      weight: tea.weight,
+      description: tea.description,
+      flavorIds: tea.flavors,
+      images: tea.images,
+      countries: countries,
+      types: types,
+      appearances: appearances,
+      flavors: flavors,
+    )).toList();
+  }
 
-    final List<TeaModel> teas = [];
+  // Метод для получения общего количества отфильтрованных чаёв
+  Future<int> getTotalTeasCountWithFilters({
+    String? searchQuery,
+    List<int> countryIds = const [],
+    List<int> typeIds = const [],
+    List<int> appearanceIds = const [],
+    List<int> flavorIds = const [],
+  }) async {
+    final teas = await getAllTeas();
+    
+    // Применяем фильтрацию
+    final filteredTeas = teas.where((tea) {
+      // Поиск по тексту
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        bool matches = tea.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            (tea.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+            (tea.brewingGuide?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+            (tea.temperature?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+            (tea.weight?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false);
+        if (!matches) return false;
+      }
 
-    for (final teaMap in teaMaps) {
+      // Фильтрация по странам
+      if (countryIds.isNotEmpty) {
+        int? teaCountryId = tea.country != null ? int.tryParse(tea.country!) : null;
+        if (teaCountryId != null && !countryIds.contains(teaCountryId)) {
+          return false;
+        }
+      }
+
+      // Фильтрация по типам
+      if (typeIds.isNotEmpty) {
+        int? teaTypeId = tea.type != null ? int.tryParse(tea.type!) : null;
+        if (teaTypeId != null && !typeIds.contains(teaTypeId)) {
+          return false;
+        }
+      }
+
+      // Фильтрация по внешним видам
+      if (appearanceIds.isNotEmpty) {
+        int? teaAppearanceId = tea.appearance != null ? int.tryParse(tea.appearance!) : null;
+        if (teaAppearanceId != null && !appearanceIds.contains(teaAppearanceId)) {
+          return false;
+        }
+      }
+
+      // Фильтрация по вкусам
+      if (flavorIds.isNotEmpty) {
+        final teaFlavorIds = tea.flavors.map((f) => int.tryParse(f)).where((id) => id != null).cast<int>().toList();
+        if (!teaFlavorIds.any((flavorId) => flavorIds.contains(flavorId))) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+
+    return filteredTeas.length;
+  }
+
+  Future<TeaModel?> getTea(int id) async {
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      final teaMap = storage['teas'].firstWhere((map) => map['id'] == id, orElse: () => null);
+      if (teaMap == null) return null;
+
+      // Получаем вкусы для этого чая
+      final flavorMaps = storage['tea_flavors'].where((map) => map['teaId'] == teaMap['id']).toList();
+      final List<String> flavors = flavorMaps.map((map) => map['flavorId'].toString()).toList();
+
+      // Получаем изображения для этого чая
+      final imageMaps = storage['tea_images'].where((map) => map['teaId'] == teaMap['id']).toList();
+      final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
+
+      return TeaModel(
+        id: teaMap['id'],
+        name: teaMap['name'],
+        country: teaMap['countryId']?.toString(),
+        type: teaMap['typeId']?.toString(),
+        appearance: teaMap['appearanceId']?.toString(),
+        temperature: teaMap['temperature'],
+        brewingGuide: teaMap['brewingGuide'],
+        weight: teaMap['weight'],
+        description: teaMap['description'],
+        flavors: flavors,
+        images: images,
+      );
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+
+      final List<Map<String, dynamic>> teaMaps = await db.query('teas', where: 'id = ?', whereArgs: [id]);
+
+      if (teaMaps.isEmpty) return null;
+
+      final teaMap = teaMaps.first;
+
       // Получаем вкусы для этого чая
       final List<Map<String, dynamic>> flavorMaps = await db.query(
         'tea_flavors',
@@ -502,7 +682,7 @@ class LocalDatabaseService {
         whereArgs: [teaMap['id']],
       );
 
-      final List<String> flavorIds = flavorMaps.map((map) => map['flavorId'].toString()).toList();
+      final List<String> flavors = flavorMaps.map((map) => map['flavorId'].toString()).toList();
 
       // Получаем изображения для этого чая
       final List<Map<String, dynamic>> imageMaps = await db.query(
@@ -514,133 +694,20 @@ class LocalDatabaseService {
 
       final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
 
-      teas.add(
-        TeaModel.fromLocalDB(
-          id: teaMap['id'],
-          name: teaMap['name'],
-          countryId: teaMap['countryId']?.toString(),
-          typeId: teaMap['typeId']?.toString(),
-          appearanceId: teaMap['appearanceId']?.toString(),
-          temperature: teaMap['temperature'],
-          brewingGuide: teaMap['brewingGuide'],
-          weight: teaMap['weight'],
-          description: teaMap['description'],
-          flavorIds: flavorIds,
-          images: images,
-          countries: countries,
-          types: types,
-          appearances: appearances,
-          flavors: flavors,
-        ),
+      return TeaModel(
+        id: teaMap['id'],
+        name: teaMap['name'],
+        country: teaMap['countryId']?.toString(),
+        type: teaMap['typeId']?.toString(),
+        appearance: teaMap['appearanceId']?.toString(),
+        temperature: teaMap['temperature'],
+        brewingGuide: teaMap['brewingGuide'],
+        weight: teaMap['weight'],
+        description: teaMap['description'],
+        flavors: flavors,
+        images: images,
       );
     }
-
-    return teas;
-  }
-
-  // Метод для получения общего количества отфильтрованных чаёв
-  Future<int> getTotalTeasCountWithFilters({
-    String? searchQuery,
-    List<int> countryIds = const [],
-    List<int> typeIds = const [],
-    List<int> appearanceIds = const [],
-    List<int> flavorIds = const [],
-  }) async {
-    final db = await database;
-
-    // Начинаем формировать SQL запрос для подсчета
-    String sql = '''
-      SELECT COUNT(DISTINCT t.id) FROM teas t
-      LEFT JOIN tea_flavors tf ON t.id = tf.teaId
-      WHERE 1=1
-    ''';
-    
-    final whereArgs = <dynamic>[];
-
-    // Добавляем условия фильтрации
-    if (searchQuery != null && searchQuery.isNotEmpty) {
-      sql += '''
-        AND (
-          t.name LIKE ? OR 
-          t.description LIKE ? OR 
-          t.brewingGuide LIKE ? OR 
-          t.temperature LIKE ? OR 
-          t.weight LIKE ?
-        )
-      ''';
-      final searchPattern = '%$searchQuery%';
-      whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
-    }
-
-    if (countryIds.isNotEmpty) {
-      final placeholders = countryIds.map((_) => '?').join(',');
-      sql += ' AND t.countryId IN ($placeholders) ';
-      whereArgs.addAll(countryIds);
-    }
-
-    if (typeIds.isNotEmpty) {
-      final placeholders = typeIds.map((_) => '?').join(',');
-      sql += ' AND t.typeId IN ($placeholders) ';
-      whereArgs.addAll(typeIds);
-    }
-
-    if (appearanceIds.isNotEmpty) {
-      final placeholders = appearanceIds.map((_) => '?').join(',');
-      sql += ' AND t.appearanceId IN ($placeholders) ';
-      whereArgs.addAll(appearanceIds);
-    }
-
-    if (flavorIds.isNotEmpty) {
-      final placeholders = flavorIds.map((_) => '?').join(',');
-      sql += ' AND tf.flavorId IN ($placeholders) ';
-      whereArgs.addAll(flavorIds);
-    }
-
-    final result = Sqflite.firstIntValue(await db.rawQuery(sql, whereArgs));
-    return result ?? 0;
-  }
-
-  Future<TeaModel?> getTea(int id) async {
-    final db = await database;
-
-    final List<Map<String, dynamic>> teaMaps = await db.query('teas', where: 'id = ?', whereArgs: [id]);
-
-    if (teaMaps.isEmpty) return null;
-
-    final teaMap = teaMaps.first;
-
-    // Получаем вкусы для этого чая
-    final List<Map<String, dynamic>> flavorMaps = await db.query(
-      'tea_flavors',
-      where: 'teaId = ?',
-      whereArgs: [teaMap['id']],
-    );
-
-    final List<String> flavors = flavorMaps.map((map) => map['flavorId'].toString()).toList();
-
-    // Получаем изображения для этого чая
-    final List<Map<String, dynamic>> imageMaps = await db.query(
-      'tea_images',
-      where: 'teaId = ?',
-      whereArgs: [teaMap['id']],
-      orderBy: 'id ASC',
-    );
-
-    final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
-
-    return TeaModel(
-      id: teaMap['id'],
-      name: teaMap['name'],
-      country: teaMap['countryId']?.toString(),
-      type: teaMap['typeId']?.toString(),
-      appearance: teaMap['appearanceId']?.toString(),
-      temperature: teaMap['temperature'],
-      brewingGuide: teaMap['brewingGuide'],
-      weight: teaMap['weight'],
-      description: teaMap['description'],
-      flavors: flavors,
-      images: images,
-    );
   }
 
   // Метод для получения чая с заполненными названиями из метаданных
@@ -651,45 +718,21 @@ class LocalDatabaseService {
     required List<AppearanceResponse> appearances,
     required List<FlavorResponse> flavors,
   }) async {
-    final db = await database;
-
-    final List<Map<String, dynamic>> teaMaps = await db.query('teas', where: 'id = ?', whereArgs: [id]);
-
-    if (teaMaps.isEmpty) return null;
-
-    final teaMap = teaMaps.first;
-
-    // Получаем вкусы для этого чая
-    final List<Map<String, dynamic>> flavorMaps = await db.query(
-      'tea_flavors',
-      where: 'teaId = ?',
-      whereArgs: [teaMap['id']],
-    );
-
-    final List<String> flavorIds = flavorMaps.map((map) => map['flavorId'].toString()).toList();
-
-    // Получаем изображения для этого чая
-    final List<Map<String, dynamic>> imageMaps = await db.query(
-      'tea_images',
-      where: 'teaId = ?',
-      whereArgs: [teaMap['id']],
-      orderBy: 'id ASC',
-    );
-
-    final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
+    final tea = await getTea(id);
+    if (tea == null) return null;
 
     return TeaModel.fromLocalDB(
-      id: teaMap['id'],
-      name: teaMap['name'],
-      countryId: teaMap['countryId']?.toString(),
-      typeId: teaMap['typeId']?.toString(),
-      appearanceId: teaMap['appearanceId']?.toString(),
-      temperature: teaMap['temperature'],
-      brewingGuide: teaMap['brewingGuide'],
-      weight: teaMap['weight'],
-      description: teaMap['description'],
-      flavorIds: flavorIds,
-      images: images,
+      id: tea.id,
+      name: tea.name,
+      countryId: tea.country,
+      typeId: tea.type,
+      appearanceId: tea.appearance,
+      temperature: tea.temperature,
+      brewingGuide: tea.brewingGuide,
+      weight: tea.weight,
+      description: tea.description,
+      flavorIds: tea.flavors,
+      images: tea.images,
       countries: countries,
       types: types,
       appearances: appearances,
@@ -701,247 +744,361 @@ class LocalDatabaseService {
 
   // Сохранение стран
   Future<void> insertCountries(List<CountryResponse> countries) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      // Очищаем таблицу перед вставкой новых данных
-      await txn.delete('countries');
-      
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      storage['countries'].clear();
       for (final country in countries) {
-        await txn.insert(
-          'countries',
-          {
-            'id': country.id,
-            'name': country.name,
-            'createdAt': country.createdAt,
-            'updatedAt': country.updatedAt,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        storage['countries'].add({
+          'id': country.id,
+          'name': country.name,
+          'createdAt': country.createdAt,
+          'updatedAt': country.updatedAt,
+        });
       }
-    });
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      await db.transaction((txn) async {
+        // Очищаем таблицу перед вставкой новых данных
+        await txn.delete('countries');
+        
+        for (final country in countries) {
+          await txn.insert(
+            'countries',
+            {
+              'id': country.id,
+              'name': country.name,
+              'createdAt': country.createdAt,
+              'updatedAt': country.updatedAt,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      });
+    }
   }
 
   // Получение всех стран
   Future<List<CountryResponse>> getCountries() async {
-    final db = await database;
-    final List<Map<String, dynamic>> countryMaps = await db.query('countries', orderBy: 'name ASC');
-    return countryMaps.map((map) => CountryResponse(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      createdAt: map['createdAt'] as String,
-      updatedAt: map['updatedAt'] as String,
-    )).toList();
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      return storage['countries'].map((map) => CountryResponse(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        createdAt: map['createdAt'] as String,
+        updatedAt: map['updatedAt'] as String,
+      )).toList();
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      final List<Map<String, dynamic>> countryMaps = await db.query('countries', orderBy: 'name ASC');
+      return countryMaps.map((map) => CountryResponse(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        createdAt: map['createdAt'] as String,
+        updatedAt: map['updatedAt'] as String,
+      )).toList();
+    }
   }
 
   // Сохранение типов
   Future<void> insertTypes(List<TypeResponse> types) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      // Очищаем таблицу перед вставкой новых данных
-      await txn.delete('types');
-      
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      storage['types'].clear();
       for (final type in types) {
-        await txn.insert(
-          'types',
-          {
-            'id': type.id,
-            'name': type.name,
-            'createdAt': type.createdAt,
-            'updatedAt': type.updatedAt,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        storage['types'].add({
+          'id': type.id,
+          'name': type.name,
+          'createdAt': type.createdAt,
+          'updatedAt': type.updatedAt,
+        });
       }
-    });
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      await db.transaction((txn) async {
+        // Очищаем таблицу перед вставкой новых данных
+        await txn.delete('types');
+        
+        for (final type in types) {
+          await txn.insert(
+            'types',
+            {
+              'id': type.id,
+              'name': type.name,
+              'createdAt': type.createdAt,
+              'updatedAt': type.updatedAt,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      });
+    }
   }
 
   // Получение всех типов
   Future<List<TypeResponse>> getTypes() async {
-    final db = await database;
-    final List<Map<String, dynamic>> typeMaps = await db.query('types', orderBy: 'name ASC');
-    return typeMaps.map((map) => TypeResponse(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      createdAt: map['createdAt'] as String,
-      updatedAt: map['updatedAt'] as String,
-    )).toList();
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      return storage['types'].map((map) => TypeResponse(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        createdAt: map['createdAt'] as String,
+        updatedAt: map['updatedAt'] as String,
+      )).toList();
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      final List<Map<String, dynamic>> typeMaps = await db.query('types', orderBy: 'name ASC');
+      return typeMaps.map((map) => TypeResponse(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        createdAt: map['createdAt'] as String,
+        updatedAt: map['updatedAt'] as String,
+      )).toList();
+    }
   }
 
   // Сохранение внешних видов
   Future<void> insertAppearances(List<AppearanceResponse> appearances) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      // Очищаем таблицу перед вставкой новых данных
-      await txn.delete('appearances');
-      
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      storage['appearances'].clear();
       for (final appearance in appearances) {
-        await txn.insert(
-          'appearances',
-          {
-            'id': appearance.id,
-            'name': appearance.name,
-            'createdAt': appearance.createdAt,
-            'updatedAt': appearance.updatedAt,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        storage['appearances'].add({
+          'id': appearance.id,
+          'name': appearance.name,
+          'createdAt': appearance.createdAt,
+          'updatedAt': appearance.updatedAt,
+        });
       }
-    });
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      await db.transaction((txn) async {
+        // Очищаем таблицу перед вставкой новых данных
+        await txn.delete('appearances');
+        
+        for (final appearance in appearances) {
+          await txn.insert(
+            'appearances',
+            {
+              'id': appearance.id,
+              'name': appearance.name,
+              'createdAt': appearance.createdAt,
+              'updatedAt': appearance.updatedAt,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      });
+    }
   }
 
   // Получение всех внешних видов
   Future<List<AppearanceResponse>> getAppearances() async {
-    final db = await database;
-    final List<Map<String, dynamic>> appearanceMaps = await db.query('appearances', orderBy: 'name ASC');
-    return appearanceMaps.map((map) => AppearanceResponse(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      createdAt: map['createdAt'] as String,
-      updatedAt: map['updatedAt'] as String,
-    )).toList();
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      return storage['appearances'].map((map) => AppearanceResponse(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        createdAt: map['createdAt'] as String,
+        updatedAt: map['updatedAt'] as String,
+      )).toList();
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      final List<Map<String, dynamic>> appearanceMaps = await db.query('appearances', orderBy: 'name ASC');
+      return appearanceMaps.map((map) => AppearanceResponse(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        createdAt: map['createdAt'] as String,
+        updatedAt: map['updatedAt'] as String,
+      )).toList();
+    }
   }
 
   // Сохранение вкусов
   Future<void> insertFlavors(List<FlavorResponse> flavors) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      // Очищаем таблицу перед вставкой новых данных
-      await txn.delete('flavors');
-      
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      storage['flavors'].clear();
       for (final flavor in flavors) {
-        await txn.insert(
-          'flavors',
-          {
-            'id': flavor.id,
-            'name': flavor.name,
-            'createdAt': flavor.createdAt,
-            'updatedAt': flavor.updatedAt,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        storage['flavors'].add({
+          'id': flavor.id,
+          'name': flavor.name,
+          'createdAt': flavor.createdAt,
+          'updatedAt': flavor.updatedAt,
+        });
       }
-    });
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      await db.transaction((txn) async {
+        // Очищаем таблицу перед вставкой новых данных
+        await txn.delete('flavors');
+        
+        for (final flavor in flavors) {
+          await txn.insert(
+            'flavors',
+            {
+              'id': flavor.id,
+              'name': flavor.name,
+              'createdAt': flavor.createdAt,
+              'updatedAt': flavor.updatedAt,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      });
+    }
   }
 
   // Получение всех вкусов
   Future<List<FlavorResponse>> getFlavors() async {
-    final db = await database;
-    final List<Map<String, dynamic>> flavorMaps = await db.query('flavors', orderBy: 'name ASC');
-    return flavorMaps.map((map) => FlavorResponse(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      createdAt: map['createdAt'] as String,
-      updatedAt: map['updatedAt'] as String,
-    )).toList();
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      return storage['flavors'].map((map) => FlavorResponse(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        createdAt: map['createdAt'] as String,
+        updatedAt: map['updatedAt'] as String,
+      )).toList();
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      final List<Map<String, dynamic>> flavorMaps = await db.query('flavors', orderBy: 'name ASC');
+      return flavorMaps.map((map) => FlavorResponse(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        createdAt: map['createdAt'] as String,
+        updatedAt: map['updatedAt'] as String,
+      )).toList();
+    }
   }
 
   // Метод для отладки - получения количества записей в базе
   Future<Map<String, int>> getDatabaseStats() async {
-    final db = await database;
-    final teasCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM teas'));
-    final flavorsCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM tea_flavors'));
-    final imagesCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM tea_images'));
+    if (kIsWeb) {
+      // Веб-реализация
+      final storage = _getWebStorage();
+      return {
+        'teas': storage['teas'].length,
+        'tea_flavors': storage['tea_flavors'].length,
+        'images': storage['tea_images'].length,
+        'countries': storage['countries'].length,
+        'types': storage['types'].length,
+        'appearances': storage['appearances'].length,
+        'flavors': storage['flavors'].length,
+      };
+    } else {
+      // Мобильная/десктопная реализация
+      final db = await database;
+      final teasCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM teas'));
+      final flavorsCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM tea_flavors'));
+      final imagesCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM tea_images'));
 
-    // Добавим подсчет метаданных
-    final countriesCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM countries'));
-    final typesCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM types'));
-    final appearancesCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM appearances'));
-    final flavorsDbCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM flavors'));
+      // Добавим подсчет метаданных
+      final countriesCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM countries'));
+      final typesCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM types'));
+      final appearancesCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM appearances'));
+      final flavorsDbCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM flavors'));
 
-    return {
-      'teas': teasCount ?? 0, 
-      'tea_flavors': flavorsCount ?? 0, 
-      'images': imagesCount ?? 0,
-      'countries': countriesCount ?? 0,
-      'types': typesCount ?? 0,
-      'appearances': appearancesCount ?? 0,
-      'flavors': flavorsDbCount ?? 0,
-    };
+      return {
+        'teas': teasCount ?? 0, 
+        'tea_flavors': flavorsCount ?? 0, 
+        'images': imagesCount ?? 0,
+        'countries': countriesCount ?? 0,
+        'types': typesCount ?? 0,
+        'appearances': appearancesCount ?? 0,
+        'flavors': flavorsDbCount ?? 0,
+      };
+    }
   }
   
   // Методы для получения фасетов с подсчетом
   
   // Получение стран с подсчетом чаёв
   Future<List<Map<String, dynamic>>> getAllCountriesWithCount() async {
-    final db = await database;
-    final List<Map<String, dynamic>> result = await db.rawQuery('''
-      SELECT 
-        c.id,
-        c.name,
-        COUNT(t.id) as count
-      FROM countries c
-      LEFT JOIN teas t ON c.id = t.countryId
-      GROUP BY c.id, c.name
-      ORDER BY c.name
-    ''');
+    final countries = await getCountries();
+    final teas = await getAllTeas();
     
-    return result.map((row) => {
-      'id': row['id'] as int,
-      'name': row['name'] as String,
-      'count': row['count'] as int,
+    return countries.map((country) {
+      final count = teas.where((tea) {
+        final teaCountryId = tea.country != null ? int.tryParse(tea.country!) : null;
+        return teaCountryId == country.id;
+      }).length;
+      
+      return {
+        'id': country.id,
+        'name': country.name,
+        'count': count,
+      };
     }).toList();
   }
   
   // Получение типов с подсчетом чаёв
   Future<List<Map<String, dynamic>>> getAllTypesWithCount() async {
-    final db = await database;
-    final List<Map<String, dynamic>> result = await db.rawQuery('''
-      SELECT 
-        t.id,
-        t.name,
-        COUNT(tea.id) as count
-      FROM types t
-      LEFT JOIN teas tea ON t.id = tea.typeId
-      GROUP BY t.id, t.name
-      ORDER BY t.name
-    ''');
+    final types = await getTypes();
+    final teas = await getAllTeas();
     
-    return result.map((row) => {
-      'id': row['id'] as int,
-      'name': row['name'] as String,
-      'count': row['count'] as int,
+    return types.map((type) {
+      final count = teas.where((tea) {
+        final teaTypeId = tea.type != null ? int.tryParse(tea.type!) : null;
+        return teaTypeId == type.id;
+      }).length;
+      
+      return {
+        'id': type.id,
+        'name': type.name,
+        'count': count,
+      };
     }).toList();
   }
   
   // Получение внешних видов с подсчетом чаёв
   Future<List<Map<String, dynamic>>> getAllAppearancesWithCount() async {
-    final db = await database;
-    final List<Map<String, dynamic>> result = await db.rawQuery('''
-      SELECT 
-        a.id,
-        a.name,
-        COUNT(t.id) as count
-      FROM appearances a
-      LEFT JOIN teas t ON a.id = t.appearanceId
-      GROUP BY a.id, a.name
-      ORDER BY a.name
-    ''');
+    final appearances = await getAppearances();
+    final teas = await getAllTeas();
     
-    return result.map((row) => {
-      'id': row['id'] as int,
-      'name': row['name'] as String,
-      'count': row['count'] as int,
+    return appearances.map((appearance) {
+      final count = teas.where((tea) {
+        final teaAppearanceId = tea.appearance != null ? int.tryParse(tea.appearance!) : null;
+        return teaAppearanceId == appearance.id;
+      }).length;
+      
+      return {
+        'id': appearance.id,
+        'name': appearance.name,
+        'count': count,
+      };
     }).toList();
   }
   
   // Получение вкусов с подсчетом чаёв
   Future<List<Map<String, dynamic>>> getAllFlavorsWithCount() async {
-    final db = await database;
-    final List<Map<String, dynamic>> result = await db.rawQuery('''
-      SELECT 
-        f.id,
-        f.name,
-        COUNT(tf.teaId) as count
-      FROM flavors f
-      LEFT JOIN tea_flavors tf ON f.id = tf.flavorId
-      GROUP BY f.id, f.name
-      ORDER BY f.name
-    ''');
+    final flavors = await getFlavors();
+    final teas = await getAllTeas();
     
-    return result.map((row) => {
-      'id': row['id'] as int,
-      'name': row['name'] as String,
-      'count': row['count'] as int,
+    return flavors.map((flavor) {
+      final count = teas.where((tea) {
+        return tea.flavors.any((flavorId) => int.tryParse(flavorId) == flavor.id);
+      }).length;
+      
+      return {
+        'id': flavor.id,
+        'name': flavor.name,
+        'count': count,
+      };
     }).toList();
   }
   
@@ -953,68 +1110,62 @@ class LocalDatabaseService {
     List<int> appearanceIds = const [],
     List<int> flavorIds = const [],
   }) async {
-    final db = await database;
+    final allCountries = await getCountries();
+    final allTeas = await getAllTeas();
     
-    // Сначала получаем все возможные страны
-    final List<Map<String, dynamic>> allCountries = await db.query('countries', orderBy: 'name ASC');
-    
-    // Затем подсчитываем чаи для каждой страны с учетом фильтров
-    final List<Map<String, dynamic>> result = [];
-    
-    for (final country in allCountries) {
-      String sql = '''
-        SELECT COUNT(DISTINCT t.id) as count
-        FROM teas t
-        LEFT JOIN tea_flavors tf ON t.id = tf.teaId
-        WHERE t.countryId = ?
-      ''';
-      
-      final whereArgs = <dynamic>[country['id']];
-      
-      // Добавляем условия фильтрации
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        sql += '''
-          AND (
-            t.name LIKE ? OR 
-            t.description LIKE ? OR 
-            t.brewingGuide LIKE ? OR 
-            t.temperature LIKE ? OR 
-            t.weight LIKE ?
-          )
-        ''';
-        final searchPattern = '%$searchQuery%';
-        whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
-      }
+    return allCountries.map((country) {
+      // Фильтруем чаи для подсчета
+      final filteredTeas = allTeas.where((tea) {
+        // Поиск по тексту
+        if (searchQuery != null && searchQuery.isNotEmpty) {
+          bool matches = tea.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+              (tea.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.brewingGuide?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.temperature?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.weight?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false);
+          if (!matches) return false;
+        }
 
-      if (typeIds.isNotEmpty) {
-        final placeholders = typeIds.map((_) => '?').join(',');
-        sql += ' AND t.typeId IN ($placeholders) ';
-        whereArgs.addAll(typeIds);
-      }
+        // Фильтрация по странам
+        if (countryIds.isNotEmpty && !countryIds.contains(country.id)) {
+          return false;
+        }
 
-      if (appearanceIds.isNotEmpty) {
-        final placeholders = appearanceIds.map((_) => '?').join(',');
-        sql += ' AND t.appearanceId IN ($placeholders) ';
-        whereArgs.addAll(appearanceIds);
-      }
+        // Фильтрация по типам
+        if (typeIds.isNotEmpty) {
+          int? teaTypeId = tea.type != null ? int.tryParse(tea.type!) : null;
+          if (teaTypeId != null && !typeIds.contains(teaTypeId)) {
+            return false;
+          }
+        }
 
-      if (flavorIds.isNotEmpty) {
-        final placeholders = flavorIds.map((_) => '?').join(',');
-        sql += ' AND tf.flavorId IN ($placeholders) ';
-        whereArgs.addAll(flavorIds);
-      }
+        // Фильтрация по внешним видам
+        if (appearanceIds.isNotEmpty) {
+          int? teaAppearanceId = tea.appearance != null ? int.tryParse(tea.appearance!) : null;
+          if (teaAppearanceId != null && !appearanceIds.contains(teaAppearanceId)) {
+            return false;
+          }
+        }
+
+        // Фильтрация по вкусам
+        if (flavorIds.isNotEmpty) {
+          final teaFlavorIds = tea.flavors.map((f) => int.tryParse(f)).where((id) => id != null).cast<int>().toList();
+          if (!teaFlavorIds.any((flavorId) => flavorIds.contains(flavorId))) {
+            return false;
+          }
+        }
+
+        // Проверяем, что это страна, для которой мы считаем
+        int? teaCountryId = tea.country != null ? int.tryParse(tea.country!) : null;
+        return teaCountryId == country.id;
+      }).toList();
       
-      final countResult = await db.rawQuery(sql, whereArgs);
-      final count = Sqflite.firstIntValue(countResult) ?? 0;
-      
-      result.add({
-        'id': country['id'] as int,
-        'name': country['name'] as String,
-        'count': count,
-      });
-    }
-    
-    return result;
+      return {
+        'id': country.id,
+        'name': country.name,
+        'count': filteredTeas.length,
+      };
+    }).toList();
   }
   
   Future<List<Map<String, dynamic>>> getFilteredTypesWithCount({
@@ -1024,68 +1175,62 @@ class LocalDatabaseService {
     List<int> appearanceIds = const [],
     List<int> flavorIds = const [],
   }) async {
-    final db = await database;
+    final allTypes = await getTypes();
+    final allTeas = await getAllTeas();
     
-    // Сначала получаем все возможные типы
-    final List<Map<String, dynamic>> allTypes = await db.query('types', orderBy: 'name ASC');
-    
-    // Затем подсчитываем чаи для каждого типа с учетом фильтров
-    final List<Map<String, dynamic>> result = [];
-    
-    for (final type in allTypes) {
-      String sql = '''
-        SELECT COUNT(DISTINCT t.id) as count
-        FROM teas t
-        LEFT JOIN tea_flavors tf ON t.id = tf.teaId
-        WHERE t.typeId = ?
-      ''';
-      
-      final whereArgs = <dynamic>[type['id']];
-      
-      // Добавляем условия фильтрации
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        sql += '''
-          AND (
-            t.name LIKE ? OR 
-            t.description LIKE ? OR 
-            t.brewingGuide LIKE ? OR 
-            t.temperature LIKE ? OR 
-            t.weight LIKE ?
-          )
-        ''';
-        final searchPattern = '%$searchQuery%';
-        whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
-      }
+    return allTypes.map((type) {
+      // Фильтруем чаи для подсчета
+      final filteredTeas = allTeas.where((tea) {
+        // Поиск по тексту
+        if (searchQuery != null && searchQuery.isNotEmpty) {
+          bool matches = tea.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+              (tea.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.brewingGuide?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.temperature?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.weight?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false);
+          if (!matches) return false;
+        }
 
-      if (countryIds.isNotEmpty) {
-        final placeholders = countryIds.map((_) => '?').join(',');
-        sql += ' AND t.countryId IN ($placeholders) ';
-        whereArgs.addAll(countryIds);
-      }
+        // Фильтрация по странам
+        if (countryIds.isNotEmpty) {
+          int? teaCountryId = tea.country != null ? int.tryParse(tea.country!) : null;
+          if (teaCountryId != null && !countryIds.contains(teaCountryId)) {
+            return false;
+          }
+        }
 
-      if (appearanceIds.isNotEmpty) {
-        final placeholders = appearanceIds.map((_) => '?').join(',');
-        sql += ' AND t.appearanceId IN ($placeholders) ';
-        whereArgs.addAll(appearanceIds);
-      }
+        // Фильтрация по типам
+        if (typeIds.isNotEmpty && !typeIds.contains(type.id)) {
+          return false;
+        }
 
-      if (flavorIds.isNotEmpty) {
-        final placeholders = flavorIds.map((_) => '?').join(',');
-        sql += ' AND tf.flavorId IN ($placeholders) ';
-        whereArgs.addAll(flavorIds);
-      }
+        // Фильтрация по внешним видам
+        if (appearanceIds.isNotEmpty) {
+          int? teaAppearanceId = tea.appearance != null ? int.tryParse(tea.appearance!) : null;
+          if (teaAppearanceId != null && !appearanceIds.contains(teaAppearanceId)) {
+            return false;
+          }
+        }
+
+        // Фильтрация по вкусам
+        if (flavorIds.isNotEmpty) {
+          final teaFlavorIds = tea.flavors.map((f) => int.tryParse(f)).where((id) => id != null).cast<int>().toList();
+          if (!teaFlavorIds.any((flavorId) => flavorIds.contains(flavorId))) {
+            return false;
+          }
+        }
+
+        // Проверяем, что это тип, для которого мы считаем
+        int? teaTypeId = tea.type != null ? int.tryParse(tea.type!) : null;
+        return teaTypeId == type.id;
+      }).toList();
       
-      final countResult = await db.rawQuery(sql, whereArgs);
-      final count = Sqflite.firstIntValue(countResult) ?? 0;
-      
-      result.add({
-        'id': type['id'] as int,
-        'name': type['name'] as String,
-        'count': count,
-      });
-    }
-    
-    return result;
+      return {
+        'id': type.id,
+        'name': type.name,
+        'count': filteredTeas.length,
+      };
+    }).toList();
   }
   
   Future<List<Map<String, dynamic>>> getFilteredAppearancesWithCount({
@@ -1095,68 +1240,62 @@ class LocalDatabaseService {
     List<int> appearanceIds = const [],
     List<int> flavorIds = const [],
   }) async {
-    final db = await database;
+    final allAppearances = await getAppearances();
+    final allTeas = await getAllTeas();
     
-    // Сначала получаем все возможные внешние виды
-    final List<Map<String, dynamic>> allAppearances = await db.query('appearances', orderBy: 'name ASC');
-    
-    // Затем подсчитываем чаи для каждого внешнего вида с учетом фильтров
-    final List<Map<String, dynamic>> result = [];
-    
-    for (final appearance in allAppearances) {
-      String sql = '''
-        SELECT COUNT(DISTINCT t.id) as count
-        FROM teas t
-        LEFT JOIN tea_flavors tf ON t.id = tf.teaId
-        WHERE t.appearanceId = ?
-      ''';
-      
-      final whereArgs = <dynamic>[appearance['id']];
-      
-      // Добавляем условия фильтрации
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        sql += '''
-          AND (
-            t.name LIKE ? OR 
-            t.description LIKE ? OR 
-            t.brewingGuide LIKE ? OR 
-            t.temperature LIKE ? OR 
-            t.weight LIKE ?
-          )
-        ''';
-        final searchPattern = '%$searchQuery%';
-        whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
-      }
+    return allAppearances.map((appearance) {
+      // Фильтруем чаи для подсчета
+      final filteredTeas = allTeas.where((tea) {
+        // Поиск по тексту
+        if (searchQuery != null && searchQuery.isNotEmpty) {
+          bool matches = tea.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+              (tea.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.brewingGuide?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.temperature?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.weight?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false);
+          if (!matches) return false;
+        }
 
-      if (countryIds.isNotEmpty) {
-        final placeholders = countryIds.map((_) => '?').join(',');
-        sql += ' AND t.countryId IN ($placeholders) ';
-        whereArgs.addAll(countryIds);
-      }
+        // Фильтрация по странам
+        if (countryIds.isNotEmpty) {
+          int? teaCountryId = tea.country != null ? int.tryParse(tea.country!) : null;
+          if (teaCountryId != null && !countryIds.contains(teaCountryId)) {
+            return false;
+          }
+        }
 
-      if (typeIds.isNotEmpty) {
-        final placeholders = typeIds.map((_) => '?').join(',');
-        sql += ' AND t.typeId IN ($placeholders) ';
-        whereArgs.addAll(typeIds);
-      }
+        // Фильтрация по типам
+        if (typeIds.isNotEmpty) {
+          int? teaTypeId = tea.type != null ? int.tryParse(tea.type!) : null;
+          if (teaTypeId != null && !typeIds.contains(teaTypeId)) {
+            return false;
+          }
+        }
 
-      if (flavorIds.isNotEmpty) {
-        final placeholders = flavorIds.map((_) => '?').join(',');
-        sql += ' AND tf.flavorId IN ($placeholders) ';
-        whereArgs.addAll(flavorIds);
-      }
+        // Фильтрация по внешним видам
+        if (appearanceIds.isNotEmpty && !appearanceIds.contains(appearance.id)) {
+          return false;
+        }
+
+        // Фильтрация по вкусам
+        if (flavorIds.isNotEmpty) {
+          final teaFlavorIds = tea.flavors.map((f) => int.tryParse(f)).where((id) => id != null).cast<int>().toList();
+          if (!teaFlavorIds.any((flavorId) => flavorIds.contains(flavorId))) {
+            return false;
+          }
+        }
+
+        // Проверяем, что это внешний вид, для которого мы считаем
+        int? teaAppearanceId = tea.appearance != null ? int.tryParse(tea.appearance!) : null;
+        return teaAppearanceId == appearance.id;
+      }).toList();
       
-      final countResult = await db.rawQuery(sql, whereArgs);
-      final count = Sqflite.firstIntValue(countResult) ?? 0;
-      
-      result.add({
-        'id': appearance['id'] as int,
-        'name': appearance['name'] as String,
-        'count': count,
-      });
-    }
-    
-    return result;
+      return {
+        'id': appearance.id,
+        'name': appearance.name,
+        'count': filteredTeas.length,
+      };
+    }).toList();
   }
   
   Future<List<Map<String, dynamic>>> getFilteredFlavorsWithCount({
@@ -1166,73 +1305,60 @@ class LocalDatabaseService {
     List<int> appearanceIds = const [],
     List<int> flavorIds = const [],
   }) async {
-    final db = await database;
+    final allFlavors = await getFlavors();
+    final allTeas = await getAllTeas();
     
-    // Сначала получаем все возможные вкусы
-    final List<Map<String, dynamic>> allFlavors = await db.query('flavors', orderBy: 'name ASC');
-    
-    // Затем подсчитываем чаи для каждого вкуса с учетом фильтров
-    final List<Map<String, dynamic>> result = [];
-    
-    for (final flavor in allFlavors) {
-      String sql = '''
-        SELECT COUNT(DISTINCT t.id) as count
-        FROM teas t
-        INNER JOIN tea_flavors tf ON t.id = tf.teaId
-        WHERE tf.flavorId = ?
-      ''';
-      
-      final whereArgs = <dynamic>[flavor['id']];
-      
-      // Добавляем условия фильтрации
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        sql += '''
-          AND (
-            t.name LIKE ? OR 
-            t.description LIKE ? OR 
-            t.brewingGuide LIKE ? OR 
-            t.temperature LIKE ? OR 
-            t.weight LIKE ?
-          )
-        ''';
-        final searchPattern = '%$searchQuery%';
-        whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
-      }
+    return allFlavors.map((flavor) {
+      // Фильтруем чаи для подсчета
+      final filteredTeas = allTeas.where((tea) {
+        // Поиск по тексту
+        if (searchQuery != null && searchQuery.isNotEmpty) {
+          bool matches = tea.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+              (tea.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.brewingGuide?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.temperature?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
+              (tea.weight?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false);
+          if (!matches) return false;
+        }
 
-      if (countryIds.isNotEmpty) {
-        final placeholders = countryIds.map((_) => '?').join(',');
-        sql += ' AND t.countryId IN ($placeholders) ';
-        whereArgs.addAll(countryIds);
-      }
+        // Фильтрация по странам
+        if (countryIds.isNotEmpty) {
+          int? teaCountryId = tea.country != null ? int.tryParse(tea.country!) : null;
+          if (teaCountryId != null && !countryIds.contains(teaCountryId)) {
+            return false;
+          }
+        }
 
-      if (typeIds.isNotEmpty) {
-        final placeholders = typeIds.map((_) => '?').join(',');
-        sql += ' AND t.typeId IN ($placeholders) ';
-        whereArgs.addAll(typeIds);
-      }
+        // Фильтрация по типам
+        if (typeIds.isNotEmpty) {
+          int? teaTypeId = tea.type != null ? int.tryParse(tea.type!) : null;
+          if (teaTypeId != null && !typeIds.contains(teaTypeId)) {
+            return false;
+          }
+        }
 
-      if (appearanceIds.isNotEmpty) {
-        final placeholders = appearanceIds.map((_) => '?').join(',');
-        sql += ' AND t.appearanceId IN ($placeholders) ';
-        whereArgs.addAll(appearanceIds);
-      }
+        // Фильтрация по внешним видам
+        if (appearanceIds.isNotEmpty) {
+          int? teaAppearanceId = tea.appearance != null ? int.tryParse(tea.appearance!) : null;
+          if (teaAppearanceId != null && !appearanceIds.contains(teaAppearanceId)) {
+            return false;
+          }
+        }
 
-      if (flavorIds.isNotEmpty) {
-        final placeholders = flavorIds.map((_) => '?').join(',');
-        sql += ' AND tf.flavorId IN ($placeholders) ';
-        whereArgs.addAll(flavorIds);
-      }
+        // Фильтрация по вкусам
+        if (flavorIds.isNotEmpty && !flavorIds.contains(flavor.id)) {
+          return false;
+        }
+
+        // Проверяем, что это вкус, для которого мы считаем
+        return tea.flavors.any((flavorId) => int.tryParse(flavorId) == flavor.id);
+      }).toList();
       
-      final countResult = await db.rawQuery(sql, whereArgs);
-      final count = Sqflite.firstIntValue(countResult) ?? 0;
-      
-      result.add({
-        'id': flavor['id'] as int,
-        'name': flavor['name'] as String,
-        'count': count,
-      });
-    }
-    
-    return result;
+      return {
+        'id': flavor.id,
+        'name': flavor.name,
+        'count': filteredTeas.length,
+      };
+    }).toList();
   }
 }

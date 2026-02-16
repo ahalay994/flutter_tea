@@ -1,12 +1,20 @@
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tea/utils/app_config.dart';
 import 'package:image/image.dart' as img;
 
 class SupabaseService {
   static SupabaseClient? _client;
 
-  void init(String supabaseUrl, String supabaseKey) {
-    _client = SupabaseClient(supabaseUrl, supabaseKey);
+  void init([String? supabaseUrl, String? supabaseKey]) {
+    String url = supabaseUrl ?? AppConfig.supabaseUrl;
+    String? key = supabaseKey ?? AppConfig.supabaseKey;
+    
+    if (url.isNotEmpty && key.isNotEmpty) {
+      _client = SupabaseClient(url, key);
+    } else {
+      print('Предупреждение: Supabase не будет инициализирован из-за отсутствия URL или ключа');
+    }
   }
 
   SupabaseClient get supabase {

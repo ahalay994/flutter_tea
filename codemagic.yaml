@@ -4,9 +4,10 @@ workflows:
     name: Build Android APK
     max_build_duration: 60
     environment:
-      flutter: stable
+      flutter: 3.10.8
       groups:
         - tea-app-variables  # Имя группы переменных, которое вы создадите в интерфейсе
+      android-sdk: default
     triggering:
       events:
         - push
@@ -36,9 +37,9 @@ workflows:
       # Собираем APK
       - name: Build APK
         script: |
-          flutter build apk --release
+          flutter build apk --release --split-per-abi
     artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
+      - build/app/outputs/flutter-apk/*-release.apk
     publishing:
       email:
         recipients:
@@ -51,7 +52,7 @@ workflows:
     name: Build iOS IPA
     max_build_duration: 60
     environment:
-      flutter: stable
+      flutter: 3.10.8
       xcode: latest
       cocoapods: default
       groups:
@@ -110,7 +111,7 @@ workflows:
     name: Build Android APK & iOS IPA
     max_build_duration: 120
     environment:
-      flutter: stable
+      flutter: 3.10.8
       xcode: latest
       cocoapods: default
       groups:
@@ -144,7 +145,7 @@ workflows:
       # Собираем APK
       - name: Build APK
         script: |
-          flutter build apk --release
+          flutter build apk --release --split-per-abi
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
@@ -156,7 +157,7 @@ workflows:
           echo "=== Содержимое build/ios/ ==="
           find build/ios/ -name "*" -type f | head -20
     artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
+      - build/app/outputs/flutter-apk/*-release.apk
       - build/**/Runner.app/**
       - build/**/Runner.ipa
       - build/**/Runner.ipa/**

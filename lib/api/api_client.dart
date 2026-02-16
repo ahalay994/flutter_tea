@@ -2,12 +2,25 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:tea/utils/app_config.dart';
 import 'package:tea/utils/app_logger.dart';
 
 import 'responses/api_response.dart';
 
 abstract class Api {
-  final String _baseUrl = dotenv.env['API_URL'] ?? '';
+  String get _baseUrl {
+    String? envValue = const String.fromEnvironment('API_URL', defaultValue: '');
+    if (envValue.isNotEmpty) return envValue;
+    
+    try {
+      // Пытаемся получить из dotenv, если доступно
+      String? dotenvValue = dotenv.env['API_URL'];
+      return dotenvValue ?? AppConfig.apiUrl;
+    } catch (e) {
+      // Если возникла ошибка доступа к dotenv (например, в вебе), используем AppConfig
+      return AppConfig.apiUrl;
+    }
+  }
 
   // Базовый GET (ваш существующий)
   Future<ApiResponse> getRequest(String endpoint) async {

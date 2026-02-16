@@ -7,9 +7,20 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:tea/utils/app_config.dart';
 
 class AppLogger {
-  static final String _tag = dotenv.env['APP_NAME'] ?? 'TeaApp';
+  // Используем AppConfig в качестве резервного варианта и избегаем обращения к dotenv при инициализации
+  static String get _tag {
+    try {
+      // Пытаемся получить из dotenv, если доступно
+      String? envAppName = dotenv.env['APP_NAME'];
+      return envAppName ?? AppConfig.appName;
+    } catch (e) {
+      // Если возникла ошибка доступа к dotenv (например, в вебе), используем AppConfig
+      return AppConfig.appName;
+    }
+  }
 
   // Метод для записи лога в файл
   static Future<void> _writeToFile(String level, String message, {Object? error}) async {

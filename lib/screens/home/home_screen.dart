@@ -5,6 +5,7 @@ import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/screens/add/add_screen.dart';
 import 'package:tea/utils/ui_helpers.dart';
+import 'package:tea/utils/app_config.dart';
 import 'package:tea/widgets/animated_loader.dart';
 import 'package:tea/utils/app_logger.dart';
 
@@ -25,20 +26,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _totalCount = 0; // Добавляем общее количество чаёв
   List<TeaModel> _allTeas = [];
   final ScrollController _scrollController = ScrollController();
+  
+  String _getAppName() {
+    try {
+      // Пытаемся получить из dotenv, если доступно
+      String? envAppName = dotenv.env['APP_NAME'];
+      return envAppName ?? AppConfig.appName;
+    } catch (e) {
+      // Если возникла ошибка доступа к dotenv (например, в вебе), используем AppConfig
+      return AppConfig.appName;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
     
+    AppLogger.debug('HomeScreen initState вызван');
+    
     // Загружаем первую страницу при инициализации
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadFirstPage();
+      AppLogger.debug('Загружаем первую страницу');
+      // Запускаем загрузку данных в фоне, чтобы не блокировать отображение интерфейса
+      Future.microtask(() => _loadFirstPage());
     });
   }
   
   Future<void> _loadFirstPage() async {
     AppLogger.debug('Начало загрузки первой страницы');
+    AppLogger.debug('Проверяем подключение...');
+    
+    // Проверяем подключение
+    final connectionStatus = ref.read(connectionStatusProvider);
+    final isConnected = connectionStatus.when(
+      data: (isConnected) => isConnected,
+      loading: () => true, // По умолчанию считаем, что подключение есть
+      error: (error, stack) => true, // При ошибке считаем, что подключение есть
+    );
+    
+    AppLogger.debug('Статус подключения: $isConnected');
+    
     setState(() {
       _isLoadingMore = true;
     });
@@ -49,6 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       AppLogger.debug('Получены параметры фильтров: $filterParams');
       
       final teaController = ref.read(teaControllerProvider);
+      AppLogger.debug('Получен teaController: ${teaController != null}');
       
       List<TeaModel> teaData;
       if (filterParams.isNotEmpty) {
@@ -71,12 +100,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _totalCount = result.totalCount; // Сохраняем общее количество
       }
       
+      AppLogger.debug('Обновляем состояние с ${teaData.length} чаём(ями)');
+      
       if (mounted) {
         setState(() {
           _allTeas = List.from(teaData);
           _isLoadingMore = false;
         });
         AppLogger.debug('Обновлен список чаёв: ${_allTeas.length} шт., всего: $_totalCount, isLoadingMore: false');
+        AppLogger.debug('Список чаёв: $_allTeas');
       }
     } catch (e, stack) {
       AppLogger.error('Ошибка при загрузке данных', error: e, stackTrace: stack);
@@ -84,7 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         setState(() {
           _isLoadingMore = false;
         });
-        context.showErrorDialog('Ошибка при загрузке данных');
+        context.showErrorDialog('Ошибка при загрузке данных: $e');
       }
     }
   }
@@ -219,7 +251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text(dotenv.env['APP_NAME'] ?? 'Tea App'),
+        title: Text(_getAppName()),
         actions: [
           // Показываем индикатор фильтрации, если фильтры активны
           if (isFiltered)
@@ -301,7 +333,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Список чаёв
           Expanded(
             child: _allTeas.isEmpty && _isLoadingMore
-                ? AnimatedLoader(size: 100) // Убираем Center, так как AnimatedLoader теперь растягивается на всю ширину
+                ? const Center(
+                    child: AnimatedLoader(size: 100),
+                  )
                 : RefreshIndicator(
                     onRefresh: () async {
                       _currentPage = 1;

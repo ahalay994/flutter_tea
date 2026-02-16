@@ -19,6 +19,7 @@ import 'package:tea/models/tea.dart';
 import 'package:tea/services/local_database_service.dart';
 import 'package:tea/services/network_service.dart';
 import 'package:tea/services/image_cache_service.dart';
+import 'package:tea/utils/app_config.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/filter_type.dart';
 
@@ -162,8 +163,8 @@ class TeaController {
       }
     });
     
-    // Проверяем, есть ли данные в базе при запуске
-    _initializeData();
+    // Проверяем, есть ли данные в базе при запуске (в фоне, чтобы не блокировать приложение)
+    Future.microtask(() => _initializeData());
   }
   
   // Метод инициализации данных при запуске
