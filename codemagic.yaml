@@ -88,10 +88,12 @@ workflows:
       - name: Analyze code
         script: |
           flutter analyze --no-fatal-infos --no-fatal-warnings
-      # Собираем IPA для iOS
+      # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
           flutter build ios --release --no-codesign
+          # Создаем IPA вручную из архива
+          xcodebuild -exportArchive -archivePath "build/ios/archive/Runner.xcarchive" -exportPath "build/ios/ipa" -exportFormat IPA -destination generic/platform=iOS
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
@@ -144,10 +146,12 @@ workflows:
       - name: Build APK
         script: |
           flutter build apk --release
-      # Собираем IPA для iOS
+      # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
           flutter build ios --release --no-codesign
+          # Создаем IPA вручную из архива
+          xcodebuild -exportArchive -archivePath "build/ios/archive/Runner.xcarchive" -exportPath "build/ios/ipa" -exportFormat IPA -destination generic/platform=iOS
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
       - build/ios/ipa/*.ipa
