@@ -1,0 +1,116 @@
+# Codemagic configuration file for Flutter project
+workflows:
+  flutter-android:
+    name: Build Android APK
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      android_signing:
+        - tea_android_signing # Укажите ваш набор данных для подписи Android
+      vars:
+        - SUPABASE_URL
+        - SUPABASE_KEY
+        - API_URL
+        - APP_NAME
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      # Создаем .env файл из переменных окружения
+      - name: Create .env file
+        script: |
+          set -e
+          echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+          echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+          echo "API_URL=$API_URL" >> .env
+          echo "APP_NAME=$APP_NAME" >> .env
+          echo "Created .env file with environment variables"
+      # Получаем зависимости Flutter
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      # Проверяем код
+      - name: Analyze code
+        script: |
+          flutter analyze
+      # Запускаем тесты (если есть)
+      - name: Run tests
+        script: |
+          flutter test
+      # Собираем APK
+      - name: Build APK
+        script: |
+          flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+    publishing:
+      email:
+        recipients:
+          - ahalay994@gmail.com # Замените на ваш email
+        notify:
+          success: true
+          failure: true
+
+  flutter-ios:
+    name: Build iOS IPA
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store # или ad_hoc или development
+        bundle_identifier: com.example.tea
+      vars:
+        - SUPABASE_URL
+        - SUPABASE_KEY
+        - API_URL
+        - APP_NAME
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      # Создаем .env файл из переменных окружения
+      - name: Create .env file
+        script: |
+          set -e
+          echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+          echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+          echo "API_URL=$API_URL" >> .env
+          echo "APP_NAME=$APP_NAME" >> .env
+          echo "Created .env file with environment variables"
+      # Получаем зависимости Flutter
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      # Проверяем код
+      - name: Analyze code
+        script: |
+          flutter analyze
+      # Запускаем тесты (если есть)
+      - name: Run tests
+        script: |
+          flutter test
+      # Собираем IPA для iOS
+      - name: Build iOS IPA
+        script: |
+          flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - ahalay994@gmail.com # Замените на ваш email
+        notify:
+          success: true
+          failure: true
