@@ -90,12 +90,12 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       if (value == 'delete') {
                         _showDeleteConfirmationDialog(context);
                       } else if (value == 'edit') {
-                        // TODO: реализовать переход к экрану редактирования
-                        // Navigator.of(context).push(
-                        //   MaterialPageRoute(
-                        //     builder: (context) => EditScreen(tea: _currentTea),
-                        //   ),
-                        // );
+                        // Переход к экрану редактирования
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => EditScreen(tea: _currentTea),
+                          ),
+                        );
                       }
                     },
                   ),
@@ -319,7 +319,12 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                 
                 success = await controller.deleteTea(
                   _currentTea.id,
-                  onSuccess: () => ref.invalidate(teaListProvider(1)), // Обновляем список
+                  onSuccess: () {
+                    // Инвалидируем провайдер для страницы 1, чтобы обновить список чаёв
+                    ref.invalidate(teaListProvider(1));
+                    // Устанавливаем флаг обновления
+                    ref.read(refreshTeaListProvider.notifier).state = true;
+                  }, // Обновляем список
                 );
                 
                 if (!success) {

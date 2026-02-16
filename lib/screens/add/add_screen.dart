@@ -93,6 +93,8 @@ class _AddScreenState extends ConsumerState<AddScreen> {
           ref.invalidate(teaListProvider(1));
           // Также инвалидируем фильтрованный список, если используется
           // ref.invalidate(filteredTeaListProvider); // Этот провайдер имеет параметры, которые нужно указать
+          // Устанавливаем флаг обновления
+          ref.read(refreshTeaListProvider.notifier).state = true;
         },
       );
 

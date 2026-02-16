@@ -232,18 +232,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
     
-    // Отслеживаем инвалидацию провайдера списка чаёв и перезагружаем данные
-    // Это нужно для обновления списка после добавления/удаления/редактирования
-    ref.listen(
-      teaListProvider(1), // Отслеживаем первую страницу списка чаёв
-      (previous, next) {},
-      onError: (error, stackTrace) {
-        // При ошибке или инвалидации также перезагружаем данные
-        if (mounted) {
-          _loadFirstPage();
-        }
-      },
-    );
+    // Отслеживаем изменения в флаге обновления списка чаёв
+    ref.listen(refreshTeaListProvider, (previous, next) {
+      if (next == true) {
+        // Сбрасываем флаг и перезагружаем список
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ref.read(refreshTeaListProvider.notifier).state = false;
+            setState(() {
+              _currentPage = 1;
+              _allTeas = [];
+            });
+            _loadFirstPage();
+          }
+        });
+      }
+    });
     
     // Слушаем провайдер параметров фильтрации
     final filterParams = ref.watch(filterParamsProvider);

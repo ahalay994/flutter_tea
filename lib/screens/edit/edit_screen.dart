@@ -72,6 +72,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       await ref.read(teaControllerProvider).updateTea(widget.tea.id, updatedTea, onSuccess: () {
         // Инвалидируем список чаёв
         ref.invalidate(teaListProvider(1));
+        // Устанавливаем флаг обновления
+        ref.read(refreshTeaListProvider.notifier).state = true;
       });
       if (mounted) {
         Navigator.of(context).pop(true);

@@ -709,7 +709,12 @@ class TeaController {
       onSuccess(); // Инвалидируем список
       
       // Возвращаем первый элемент, так как saveTea возвращает список
-      return response.first;
+      // Проверяем, что список не пустой
+      if (response.isNotEmpty) {
+        return response.first;
+      } else {
+        throw Exception("Не удалось создать чай - ответ API пустой");
+      }
     } else {
       // Оффлайн режим - не поддерживается
       throw Exception('Создание чая недоступно в оффлайн-режиме');
@@ -723,16 +728,10 @@ class TeaController {
       await _teaApi.updateTea(teaId, dto);
       onSuccess(); // Инвалидируем список
       
-      // После инвалидации списка получаем обновленный чай
-      // Ждем немного, чтобы список обновился
-      await Future.delayed(const Duration(milliseconds: 500));
+      // После обновления получаем обновленный чай по ID
+      final updatedTea = await _teaApi.getTea(teaId);
       
-      // Затем получаем список чаев и находим обновленный
-      final teas = await _teaApi.getTeas();
-      final updatedTea = teas.firstWhere((tea) => tea.id == teaId, 
-          orElse: () => throw Exception("Обновленный чай не найден в списке"));
-
-      AppLogger.debug('Чай "${dto.name}" успешно обновлён');
+      AppLogger.success('Чай "${dto.name}" успешно обновлён');
       return updatedTea;
     } else {
       // Оффлайн режим - не поддерживается
@@ -1032,3 +1031,6 @@ class TeaController {
     }
   }
 }
+
+// Провайдер для отслеживания необходимости обновления списка чаёв
+final refreshTeaListProvider = StateProvider<bool>((ref) => false);

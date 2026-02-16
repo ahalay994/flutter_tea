@@ -23,16 +23,14 @@ echo "Current directory: $(pwd)"
 if [ -f "$ENV_FILE" ]; then
     echo ".env file found"
     
-    # Extract APP_NAME from .env file
-    APP_NAME=$(grep -E '^APP_NAME=' "$ENV_FILE" | cut -d'=' -f2-)
+    # Extract APP_NAME from .env file using a more robust method to preserve spaces
+    APP_NAME=$(grep -E '^APP_NAME=' "$ENV_FILE" | sed -e 's/APP_NAME=//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
     
     echo "Raw APP_NAME value from .env: $APP_NAME"
     
-    # Remove surrounding quotes if present
-    if [[ "$APP_NAME" == \"*\" ]] || [[ "$APP_NAME" == \'*\' ]]; then
-        APP_NAME=$(echo "$APP_NAME" | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\(.*\)'$/\1/")
-        echo "APP_NAME after quote removal: $APP_NAME"
-    fi
+    # Trim leading and trailing whitespace
+    APP_NAME=$(echo "$APP_NAME" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+    echo "APP_NAME after whitespace trimming: $APP_NAME"
     
     if [ -n "$APP_NAME" ]; then
         echo "APP_NAME to be used: $APP_NAME"
@@ -53,6 +51,8 @@ if [ -f "$ENV_FILE" ]; then
             fi
             
             if [ -f "$INFO_PLIST_FILE" ]; then
+                # Properly handle the app name with spaces and special characters
+                # Use double quotes around the entire command to preserve spaces
                 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName '$APP_NAME'" "$INFO_PLIST_FILE"
                 echo "Updated iOS CFBundleDisplayName to: $APP_NAME"
                 
