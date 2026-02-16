@@ -8,10 +8,10 @@ workflows:
       android_signing:
         - tea_android_signing # Укажите ваш набор данных для подписи Android
       vars:
-        - SUPABASE_URL
-        - SUPABASE_KEY
-        - API_URL
-        - APP_NAME
+        SUPABASE_URL: $SUPABASE_URL # Эти переменные вы уже добавили в интерфейсе Codemagic
+        SUPABASE_KEY: $SUPABASE_KEY
+        API_URL: $API_URL
+        APP_NAME: $APP_NAME
     triggering:
       events:
         - push
@@ -67,10 +67,10 @@ workflows:
         distribution_type: app_store # или ad_hoc или development
         bundle_identifier: com.example.tea
       vars:
-        - SUPABASE_URL
-        - SUPABASE_KEY
-        - API_URL
-        - APP_NAME
+        SUPABASE_URL: $SUPABASE_URL # Эти переменные вы уже добавили в интерфейсе Codemagic
+        SUPABASE_KEY: $SUPABASE_KEY
+        API_URL: $API_URL
+        APP_NAME: $APP_NAME
     triggering:
       events:
         - push
