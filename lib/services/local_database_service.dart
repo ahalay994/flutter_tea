@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -8,7 +7,6 @@ import 'package:tea/api/responses/country_response.dart';
 import 'package:tea/api/responses/type_response.dart';
 import 'package:tea/api/responses/appearance_response.dart';
 import 'package:tea/api/responses/flavor_response.dart';
-import 'package:tea/utils/app_logger.dart';
 
 class LocalDatabaseService {
   static Database? _database;

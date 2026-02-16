@@ -113,9 +113,8 @@ class TeaCard extends StatelessWidget {
                               spacing: 4,
                               runSpacing: 0,
                               children: [
-                                ...displayedFlavors
-                                    .map((f) => Text("#$f", style: TextStyle(color: Colors.orange[800], fontSize: 12)))
-                                    .toList(),
+                                ...List<Widget>.from(displayedFlavors
+                                    .map((f) => Text("#$f", style: TextStyle(color: Colors.orange[800], fontSize: 12)))),
                                 if (extraCount > 0)
                                   Text(
                                     "+$extraCount",

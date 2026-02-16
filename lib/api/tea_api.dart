@@ -173,7 +173,7 @@ class TeaApi extends Api {
         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
     
-    final response = await getRequest('/tea/pagination${queryString.isNotEmpty ? '?' + queryString : ''}');
+    final response = await getRequest('/tea/pagination${queryString.isNotEmpty ? '?$queryString' : ''}');
 
     if (response.ok) {
       // Если сервер возвращает объект с пагинацией
@@ -244,7 +244,7 @@ extension TeaApiFacets on TeaApi {
         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
     
-    final response = await getRequest('/tea/facets${queryString.isNotEmpty ? '?' + queryString : ''}');
+    final response = await getRequest('/tea/facets${queryString.isNotEmpty ? '?$queryString' : ''}');
 
     if (response.ok && response.data != null) {
       return FacetResponse.fromJson(response.data as Map<String, dynamic>);

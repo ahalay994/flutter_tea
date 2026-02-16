@@ -1,3 +1,5 @@
+import 'package:tea/utils/app_logger.dart';
+
 class JsonUtils {
   /// Универсальный метод для парсинга списков любого типа.
   /// [json] - сырые данные из Map.
@@ -14,7 +16,7 @@ class JsonUtils {
             return mapper(item);
           } catch (e) {
             // Если один элемент битый, логируем и возвращаем null, который потом отфильтруем
-            print('Ошибка при парсинге элемента списка: $e');
+            AppLogger.error('Ошибка при парсинге элемента списка', error: e);
             return null;
           }
         })

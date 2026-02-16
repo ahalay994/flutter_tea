@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/screens/add/add_screen.dart';
-import 'package:tea/utils/filter_type.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:tea/widgets/animated_loader.dart';
 import 'package:tea/utils/app_logger.dart';

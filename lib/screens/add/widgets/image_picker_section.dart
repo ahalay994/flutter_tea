@@ -102,7 +102,7 @@ class ImagePickerSection extends StatelessWidget {
               const SizedBox(width: 10),
 
               // Список выбранных фото
-              ...selectedImages.asMap().entries.map((entry) {
+              ...List<Widget>.from(selectedImages.asMap().entries.map((entry) {
                 int index = entry.key;
                 XFile file = entry.value;
                 return Padding(
@@ -136,7 +136,7 @@ class ImagePickerSection extends StatelessWidget {
                     ],
                   ),
                 );
-              }).toList(),
+              })),
             ],
           ),
         ),

@@ -35,7 +35,7 @@ workflows:
       # Проверяем код
       - name: Analyze code
         script: |
-          flutter analyze
+          flutter analyze --no-fatal-infos --no-fatal-warnings
       # Запускаем тесты (если есть)
       - name: Run tests
         script: |

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:tea/utils/app_logger.dart';
 
 import 'responses/api_response.dart';
 
@@ -36,14 +37,14 @@ abstract class Api {
   Future<ApiResponse> putRequest(String endpoint, Map<String, dynamic> data) async {
     try {
       // Логируем отправляемые данные
-      print('PUT запрос к $endpoint с данными: ${json.encode(data)}');
+      AppLogger.debug('PUT запрос к $endpoint с данными: ${json.encode(data)}');
       
       final response = await http.put(
         Uri.parse('$_baseUrl$endpoint'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(data),
       );
-      print('Ответ сервера: ${response.statusCode}, тело: ${response.body}');
+      AppLogger.debug('Ответ сервера: ${response.statusCode}, тело: ${response.body}');
       return _processResponse(response);
     } catch (e) {
       return ApiResponse(ok: false, message: 'Ошибка запроса: $e');

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -59,7 +58,8 @@ class NetworkService {
 
   Future<void> _updateConnectionStatus() async {
     try {
-      final result = await Connectivity().checkConnectivity();
+      final List<ConnectivityResult> results = await Connectivity().checkConnectivity();
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
       _updateConnectionStatusBasedOnResult(result);
     } catch (e) {
       final wasConnected = _isConnected;
@@ -73,7 +73,8 @@ class NetworkService {
 
   Future<bool> checkConnection() async {
     try {
-      final result = await Connectivity().checkConnectivity();
+      final List<ConnectivityResult> results = await Connectivity().checkConnectivity();
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
       
       // Возвращаем true, если есть любой тип подключения (WiFi, мобильный, Ethernet и т.д.)
       // и только false, если подключения нет вообще
@@ -104,7 +105,8 @@ class NetworkService {
     try {
       // Выполняем легкий запрос к основному API эндпоинту
       // Используем существующую зависимость http, но делаем простой HEAD или GET запрос
-      final connectivityResult = await Connectivity().checkConnectivity();
+      final List<ConnectivityResult> connectivityResults = await Connectivity().checkConnectivity();
+      final connectivityResult = connectivityResults.isNotEmpty ? connectivityResults.first : ConnectivityResult.none;
       if (connectivityResult == ConnectivityResult.none) {
         _apiAvailable = false;
         _lastApiCheck = DateTime.now();
