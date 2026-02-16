@@ -85,8 +85,18 @@ workflows:
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
-          # Создаем архив с помощью xcodebuild с отключенной подписью
-          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath "build/ios/archive/Runner.xcarchive" -allowProvisioningUpdates -allowProvisioningDeviceRegistration archive
+          # Перед сборкой iOS, обновляем настройки проекта для отключения автоматической подписи
+          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = /' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = /' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = /' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/' ios/Runner.xcodeproj/project.pbxproj
+          
+          # Собираем проект с отключенными настройками подписи
+          flutter build ios --release --no-codesign --config-only
+          
+          # Устанавливаем правильные настройки для сборки без подписи
+          xcodebuild -project ios/Runner.xcodeproj -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath "build/ios/archive/Runner.xcarchive" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" OTHER_CODE_SIGN_FLAGS="--timestamp" ONLY_ACTIVE_ARCH=YES archive
+          
           # Создаем plist файл с настройками экспорта
           cat > export_options.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -158,8 +168,18 @@ workflows:
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
-          # Создаем архив с помощью xcodebuild с отключенной подписью
-          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath "build/ios/archive/Runner.xcarchive" -allowProvisioningUpdates -allowProvisioningDeviceRegistration archive
+          # Перед сборкой iOS, обновляем настройки проекта для отключения автоматической подписи
+          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = /' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = /' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = /' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/' ios/Runner.xcodeproj/project.pbxproj
+          
+          # Собираем проект с отключенными настройками подписи
+          flutter build ios --release --no-codesign --config-only
+          
+          # Устанавливаем правильные настройки для сборки без подписи
+          xcodebuild -project ios/Runner.xcodeproj -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath "build/ios/archive/Runner.xcarchive" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" OTHER_CODE_SIGN_FLAGS="--timestamp" ONLY_ACTIVE_ARCH=YES archive
+          
           # Создаем plist файл с настройками экспорта
           cat > export_options.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
