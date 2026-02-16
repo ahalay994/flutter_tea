@@ -29,7 +29,11 @@ class TeaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Получаем имя приложения из переменной окружения
+    final appName = dotenv.env['APP_NAME'] ?? 'Tea App';
+    
     return MaterialApp(
+      title: appName, // Устанавливаем имя приложения как заголовок
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

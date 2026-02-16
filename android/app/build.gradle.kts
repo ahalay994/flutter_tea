@@ -28,6 +28,24 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Получаем APP_NAME из .env файла
+        val envFile = File(rootProject.projectDir, ".env")
+        var appName = "Tea App" // Значение по умолчанию
+        if (envFile.exists()) {
+            val envContents = envFile.readLines()
+            val appNameLine = envContents.find { it.startsWith("APP_NAME=") }
+            if (appNameLine != null) {
+                appName = appNameLine.substringAfter("=").trim()
+                // Убираем кавычки, если они есть
+                if (appName.startsWith("\"") && appName.endsWith("\"")) {
+                    appName = appName.substring(1, appName.length - 1)
+                } else if (appName.startsWith("'") && appName.endsWith("'")) {
+                    appName = appName.substring(1, appName.length - 1)
+                }
+            }
+        }
+        manifestPlaceholders["appName"] = appName
     }
 
     buildTypes {

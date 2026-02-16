@@ -59,6 +59,7 @@ dependencies:
   async: ^2.11.0
   cached_network_image: ^3.3.0
   flutter_cache_manager: ^3.3.1
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_test:
@@ -122,3 +123,25 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/images/icon.png"  # Путь к изображению иконки (размер 1024x1024px)
   min_sdk_android: 21
+
+# Native Splash Configuration
+flutter_native_splash:
+  # This package generates native code to customize Flutter's default white native splash screen
+  # with background color and splash image.
+  # Customize the parameters below, and run the following command in the terminal:
+  # flutter pub run flutter_native_splash:create
+  color: "#FFFFFF"
+  color_dark: "#121212"
+  image: assets/images/splash.png
+  #image: assets/images/default.png  # Путь к изображению splash screen
+  android_12:
+    # Используется для Android 12 и выше
+    color: "#FFFFFF"
+    color_dark: "#121212"
+    image: assets/images/splash.png
+    icon_background_color: "#FFFFFF"
+    icon_background_color_dark: "#121212"
+  # Рекомендуется использовать fit: cover для корректного отображения на разных устройствах
+  android_gravity: fill
+  ios_content_mode: scaleAspectFill
+  web: false
