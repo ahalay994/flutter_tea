@@ -86,7 +86,7 @@ workflows:
       - name: Build iOS IPA
         script: |
           # Запускаем сборку IPA с отключенной подписью
-          flutter build ipa --release --no-codesign
+          flutter build ios --release --no-codesign
           # Выводим список файлов в директории build для проверки
           echo "=== Содержимое build/ ==="
           find build/ -name "*" -type f | head -20
@@ -149,7 +149,7 @@ workflows:
       - name: Build iOS IPA
         script: |
           # Запускаем сборку IPA с отключенной подписью
-          flutter build ipa --release --no-codesign
+          flutter build ios --release --no-codesign
           # Выводим список файлов в директории build для проверки
           echo "=== Содержимое build/ ==="
           find build/ -name "*" -type f | head -20
