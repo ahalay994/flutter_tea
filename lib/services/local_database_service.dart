@@ -406,10 +406,15 @@ class LocalDatabaseService {
 
 
 
-  // Метод для получения чаёв с пагинацией с заполненными названиями из метаданных
-  Future<List<TeaModel>> getTeasPaginatedWithNames({
+  // Метод для получения отфильтрованных чаёв с пагинацией с заполненными названиями из метаданных
+  Future<List<TeaModel>> getFilteredTeasWithNames({
     int page = 1, 
     int perPage = 10,
+    String? searchQuery,
+    List<int> countryIds = const [],
+    List<int> typeIds = const [],
+    List<int> appearanceIds = const [],
+    List<int> flavorIds = const [],
     required List<CountryResponse> countries,
     required List<TypeResponse> types,
     required List<AppearanceResponse> appearances,
@@ -419,12 +424,63 @@ class LocalDatabaseService {
 
     final offset = (page - 1) * perPage;
 
-    final List<Map<String, dynamic>> teaMaps = await db.query(
-      'teas',
-      orderBy: 'id DESC', // Сортировка по ID по убыванию
-      limit: perPage,
-      offset: offset,
-    );
+    // Начинаем формировать SQL запрос
+    String sql = '''
+      SELECT t.* FROM teas t
+      LEFT JOIN tea_flavors tf ON t.id = tf.teaId
+      WHERE 1=1
+    ''';
+    
+    final whereArgs = <dynamic>[];
+
+    // Добавляем условия фильтрации
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      sql += '''
+        AND (
+          t.name LIKE ? OR 
+          t.description LIKE ? OR 
+          t.brewingGuide LIKE ? OR 
+          t.temperature LIKE ? OR 
+          t.weight LIKE ?
+        )
+      ''';
+      final searchPattern = '%$searchQuery%';
+      whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
+    }
+
+    if (countryIds.isNotEmpty) {
+      final placeholders = countryIds.map((_) => '?').join(',');
+      sql += ' AND t.countryId IN ($placeholders) ';
+      whereArgs.addAll(countryIds);
+    }
+
+    if (typeIds.isNotEmpty) {
+      final placeholders = typeIds.map((_) => '?').join(',');
+      sql += ' AND t.typeId IN ($placeholders) ';
+      whereArgs.addAll(typeIds);
+    }
+
+    if (appearanceIds.isNotEmpty) {
+      final placeholders = appearanceIds.map((_) => '?').join(',');
+      sql += ' AND t.appearanceId IN ($placeholders) ';
+      whereArgs.addAll(appearanceIds);
+    }
+
+    if (flavorIds.isNotEmpty) {
+      final placeholders = flavorIds.map((_) => '?').join(',');
+      sql += ' AND tf.flavorId IN ($placeholders) ';
+      whereArgs.addAll(flavorIds);
+    }
+
+    // Добавляем группировку и лимит
+    sql += '''
+      GROUP BY t.id
+      ORDER BY t.id DESC
+      LIMIT ? OFFSET ?
+    ''';
+    whereArgs.addAll([perPage, offset]);
+
+    final List<Map<String, dynamic>> teaMaps = await db.rawQuery(sql, whereArgs);
 
     final List<TeaModel> teas = [];
 
@@ -448,35 +504,90 @@ class LocalDatabaseService {
 
       final List<String> images = imageMaps.map((map) => map['url'] as String).toList();
 
-      final teaModel = TeaModel.fromLocalDB(
-        id: teaMap['id'],
-        name: teaMap['name'],
-        countryId: teaMap['countryId']?.toString(),
-        typeId: teaMap['typeId']?.toString(),
-        appearanceId: teaMap['appearanceId']?.toString(),
-        temperature: teaMap['temperature'],
-        brewingGuide: teaMap['brewingGuide'],
-        weight: teaMap['weight'],
-        description: teaMap['description'],
-        flavorIds: flavorIds,
-        images: images,
-        countries: countries,
-        types: types,
-        appearances: appearances,
-        flavors: flavors,
+      teas.add(
+        TeaModel.fromLocalDB(
+          id: teaMap['id'],
+          name: teaMap['name'],
+          countryId: teaMap['countryId']?.toString(),
+          typeId: teaMap['typeId']?.toString(),
+          appearanceId: teaMap['appearanceId']?.toString(),
+          temperature: teaMap['temperature'],
+          brewingGuide: teaMap['brewingGuide'],
+          weight: teaMap['weight'],
+          description: teaMap['description'],
+          flavorIds: flavorIds,
+          images: images,
+          countries: countries,
+          types: types,
+          appearances: appearances,
+          flavors: flavors,
+        ),
       );
-      
-      // Временное логирование для отладки
-      print('DEBUG TeaModel: id=${teaModel.id}, name=${teaModel.name}');
-      print('  country: ${teaModel.country} (was ID: ${teaMap['countryId']})');
-      print('  type: ${teaModel.type} (was ID: ${teaMap['typeId']})');
-      print('  appearance: ${teaModel.appearance} (was ID: ${teaMap['appearanceId']})');
-      print('  flavors: ${teaModel.flavors} (was IDs: $flavorIds)');
-      
-      teas.add(teaModel);
     }
 
     return teas;
+  }
+
+  // Метод для получения общего количества отфильтрованных чаёв
+  Future<int> getTotalTeasCountWithFilters({
+    String? searchQuery,
+    List<int> countryIds = const [],
+    List<int> typeIds = const [],
+    List<int> appearanceIds = const [],
+    List<int> flavorIds = const [],
+  }) async {
+    final db = await database;
+
+    // Начинаем формировать SQL запрос для подсчета
+    String sql = '''
+      SELECT COUNT(DISTINCT t.id) FROM teas t
+      LEFT JOIN tea_flavors tf ON t.id = tf.teaId
+      WHERE 1=1
+    ''';
+    
+    final whereArgs = <dynamic>[];
+
+    // Добавляем условия фильтрации
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      sql += '''
+        AND (
+          t.name LIKE ? OR 
+          t.description LIKE ? OR 
+          t.brewingGuide LIKE ? OR 
+          t.temperature LIKE ? OR 
+          t.weight LIKE ?
+        )
+      ''';
+      final searchPattern = '%$searchQuery%';
+      whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
+    }
+
+    if (countryIds.isNotEmpty) {
+      final placeholders = countryIds.map((_) => '?').join(',');
+      sql += ' AND t.countryId IN ($placeholders) ';
+      whereArgs.addAll(countryIds);
+    }
+
+    if (typeIds.isNotEmpty) {
+      final placeholders = typeIds.map((_) => '?').join(',');
+      sql += ' AND t.typeId IN ($placeholders) ';
+      whereArgs.addAll(typeIds);
+    }
+
+    if (appearanceIds.isNotEmpty) {
+      final placeholders = appearanceIds.map((_) => '?').join(',');
+      sql += ' AND t.appearanceId IN ($placeholders) ';
+      whereArgs.addAll(appearanceIds);
+    }
+
+    if (flavorIds.isNotEmpty) {
+      final placeholders = flavorIds.map((_) => '?').join(',');
+      sql += ' AND tf.flavorId IN ($placeholders) ';
+      whereArgs.addAll(flavorIds);
+    }
+
+    final result = Sqflite.firstIntValue(await db.rawQuery(sql, whereArgs));
+    return result ?? 0;
   }
 
   Future<TeaModel?> getTea(int id) async {
@@ -736,5 +847,382 @@ class LocalDatabaseService {
       'appearances': appearancesCount ?? 0,
       'flavors': flavorsDbCount ?? 0,
     };
+  }
+  
+  // Методы для получения фасетов с подсчетом
+  
+  // Получение стран с подсчетом чаёв
+  Future<List<Map<String, dynamic>>> getAllCountriesWithCount() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery('''
+      SELECT 
+        c.id,
+        c.name,
+        COUNT(t.id) as count
+      FROM countries c
+      LEFT JOIN teas t ON c.id = t.countryId
+      GROUP BY c.id, c.name
+      ORDER BY c.name
+    ''');
+    
+    return result.map((row) => {
+      'id': row['id'] as int,
+      'name': row['name'] as String,
+      'count': row['count'] as int,
+    }).toList();
+  }
+  
+  // Получение типов с подсчетом чаёв
+  Future<List<Map<String, dynamic>>> getAllTypesWithCount() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery('''
+      SELECT 
+        t.id,
+        t.name,
+        COUNT(tea.id) as count
+      FROM types t
+      LEFT JOIN teas tea ON t.id = tea.typeId
+      GROUP BY t.id, t.name
+      ORDER BY t.name
+    ''');
+    
+    return result.map((row) => {
+      'id': row['id'] as int,
+      'name': row['name'] as String,
+      'count': row['count'] as int,
+    }).toList();
+  }
+  
+  // Получение внешних видов с подсчетом чаёв
+  Future<List<Map<String, dynamic>>> getAllAppearancesWithCount() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery('''
+      SELECT 
+        a.id,
+        a.name,
+        COUNT(t.id) as count
+      FROM appearances a
+      LEFT JOIN teas t ON a.id = t.appearanceId
+      GROUP BY a.id, a.name
+      ORDER BY a.name
+    ''');
+    
+    return result.map((row) => {
+      'id': row['id'] as int,
+      'name': row['name'] as String,
+      'count': row['count'] as int,
+    }).toList();
+  }
+  
+  // Получение вкусов с подсчетом чаёв
+  Future<List<Map<String, dynamic>>> getAllFlavorsWithCount() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery('''
+      SELECT 
+        f.id,
+        f.name,
+        COUNT(tf.teaId) as count
+      FROM flavors f
+      LEFT JOIN tea_flavors tf ON f.id = tf.flavorId
+      GROUP BY f.id, f.name
+      ORDER BY f.name
+    ''');
+    
+    return result.map((row) => {
+      'id': row['id'] as int,
+      'name': row['name'] as String,
+      'count': row['count'] as int,
+    }).toList();
+  }
+  
+  // Методы для получения фасетов с подсчетом, учитывающих фильтры
+  Future<List<Map<String, dynamic>>> getFilteredCountriesWithCount({
+    String? searchQuery,
+    List<int> countryIds = const [],
+    List<int> typeIds = const [],
+    List<int> appearanceIds = const [],
+    List<int> flavorIds = const [],
+  }) async {
+    final db = await database;
+    
+    // Сначала получаем все возможные страны
+    final List<Map<String, dynamic>> allCountries = await db.query('countries', orderBy: 'name ASC');
+    
+    // Затем подсчитываем чаи для каждой страны с учетом фильтров
+    final List<Map<String, dynamic>> result = [];
+    
+    for (final country in allCountries) {
+      String sql = '''
+        SELECT COUNT(DISTINCT t.id) as count
+        FROM teas t
+        LEFT JOIN tea_flavors tf ON t.id = tf.teaId
+        WHERE t.countryId = ?
+      ''';
+      
+      final whereArgs = <dynamic>[country['id']];
+      
+      // Добавляем условия фильтрации
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        sql += '''
+          AND (
+            t.name LIKE ? OR 
+            t.description LIKE ? OR 
+            t.brewingGuide LIKE ? OR 
+            t.temperature LIKE ? OR 
+            t.weight LIKE ?
+          )
+        ''';
+        final searchPattern = '%$searchQuery%';
+        whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
+      }
+
+      if (typeIds.isNotEmpty) {
+        final placeholders = typeIds.map((_) => '?').join(',');
+        sql += ' AND t.typeId IN ($placeholders) ';
+        whereArgs.addAll(typeIds);
+      }
+
+      if (appearanceIds.isNotEmpty) {
+        final placeholders = appearanceIds.map((_) => '?').join(',');
+        sql += ' AND t.appearanceId IN ($placeholders) ';
+        whereArgs.addAll(appearanceIds);
+      }
+
+      if (flavorIds.isNotEmpty) {
+        final placeholders = flavorIds.map((_) => '?').join(',');
+        sql += ' AND tf.flavorId IN ($placeholders) ';
+        whereArgs.addAll(flavorIds);
+      }
+      
+      final countResult = await db.rawQuery(sql, whereArgs);
+      final count = Sqflite.firstIntValue(countResult) ?? 0;
+      
+      result.add({
+        'id': country['id'] as int,
+        'name': country['name'] as String,
+        'count': count,
+      });
+    }
+    
+    return result;
+  }
+  
+  Future<List<Map<String, dynamic>>> getFilteredTypesWithCount({
+    String? searchQuery,
+    List<int> countryIds = const [],
+    List<int> typeIds = const [],
+    List<int> appearanceIds = const [],
+    List<int> flavorIds = const [],
+  }) async {
+    final db = await database;
+    
+    // Сначала получаем все возможные типы
+    final List<Map<String, dynamic>> allTypes = await db.query('types', orderBy: 'name ASC');
+    
+    // Затем подсчитываем чаи для каждого типа с учетом фильтров
+    final List<Map<String, dynamic>> result = [];
+    
+    for (final type in allTypes) {
+      String sql = '''
+        SELECT COUNT(DISTINCT t.id) as count
+        FROM teas t
+        LEFT JOIN tea_flavors tf ON t.id = tf.teaId
+        WHERE t.typeId = ?
+      ''';
+      
+      final whereArgs = <dynamic>[type['id']];
+      
+      // Добавляем условия фильтрации
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        sql += '''
+          AND (
+            t.name LIKE ? OR 
+            t.description LIKE ? OR 
+            t.brewingGuide LIKE ? OR 
+            t.temperature LIKE ? OR 
+            t.weight LIKE ?
+          )
+        ''';
+        final searchPattern = '%$searchQuery%';
+        whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
+      }
+
+      if (countryIds.isNotEmpty) {
+        final placeholders = countryIds.map((_) => '?').join(',');
+        sql += ' AND t.countryId IN ($placeholders) ';
+        whereArgs.addAll(countryIds);
+      }
+
+      if (appearanceIds.isNotEmpty) {
+        final placeholders = appearanceIds.map((_) => '?').join(',');
+        sql += ' AND t.appearanceId IN ($placeholders) ';
+        whereArgs.addAll(appearanceIds);
+      }
+
+      if (flavorIds.isNotEmpty) {
+        final placeholders = flavorIds.map((_) => '?').join(',');
+        sql += ' AND tf.flavorId IN ($placeholders) ';
+        whereArgs.addAll(flavorIds);
+      }
+      
+      final countResult = await db.rawQuery(sql, whereArgs);
+      final count = Sqflite.firstIntValue(countResult) ?? 0;
+      
+      result.add({
+        'id': type['id'] as int,
+        'name': type['name'] as String,
+        'count': count,
+      });
+    }
+    
+    return result;
+  }
+  
+  Future<List<Map<String, dynamic>>> getFilteredAppearancesWithCount({
+    String? searchQuery,
+    List<int> countryIds = const [],
+    List<int> typeIds = const [],
+    List<int> appearanceIds = const [],
+    List<int> flavorIds = const [],
+  }) async {
+    final db = await database;
+    
+    // Сначала получаем все возможные внешние виды
+    final List<Map<String, dynamic>> allAppearances = await db.query('appearances', orderBy: 'name ASC');
+    
+    // Затем подсчитываем чаи для каждого внешнего вида с учетом фильтров
+    final List<Map<String, dynamic>> result = [];
+    
+    for (final appearance in allAppearances) {
+      String sql = '''
+        SELECT COUNT(DISTINCT t.id) as count
+        FROM teas t
+        LEFT JOIN tea_flavors tf ON t.id = tf.teaId
+        WHERE t.appearanceId = ?
+      ''';
+      
+      final whereArgs = <dynamic>[appearance['id']];
+      
+      // Добавляем условия фильтрации
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        sql += '''
+          AND (
+            t.name LIKE ? OR 
+            t.description LIKE ? OR 
+            t.brewingGuide LIKE ? OR 
+            t.temperature LIKE ? OR 
+            t.weight LIKE ?
+          )
+        ''';
+        final searchPattern = '%$searchQuery%';
+        whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
+      }
+
+      if (countryIds.isNotEmpty) {
+        final placeholders = countryIds.map((_) => '?').join(',');
+        sql += ' AND t.countryId IN ($placeholders) ';
+        whereArgs.addAll(countryIds);
+      }
+
+      if (typeIds.isNotEmpty) {
+        final placeholders = typeIds.map((_) => '?').join(',');
+        sql += ' AND t.typeId IN ($placeholders) ';
+        whereArgs.addAll(typeIds);
+      }
+
+      if (flavorIds.isNotEmpty) {
+        final placeholders = flavorIds.map((_) => '?').join(',');
+        sql += ' AND tf.flavorId IN ($placeholders) ';
+        whereArgs.addAll(flavorIds);
+      }
+      
+      final countResult = await db.rawQuery(sql, whereArgs);
+      final count = Sqflite.firstIntValue(countResult) ?? 0;
+      
+      result.add({
+        'id': appearance['id'] as int,
+        'name': appearance['name'] as String,
+        'count': count,
+      });
+    }
+    
+    return result;
+  }
+  
+  Future<List<Map<String, dynamic>>> getFilteredFlavorsWithCount({
+    String? searchQuery,
+    List<int> countryIds = const [],
+    List<int> typeIds = const [],
+    List<int> appearanceIds = const [],
+    List<int> flavorIds = const [],
+  }) async {
+    final db = await database;
+    
+    // Сначала получаем все возможные вкусы
+    final List<Map<String, dynamic>> allFlavors = await db.query('flavors', orderBy: 'name ASC');
+    
+    // Затем подсчитываем чаи для каждого вкуса с учетом фильтров
+    final List<Map<String, dynamic>> result = [];
+    
+    for (final flavor in allFlavors) {
+      String sql = '''
+        SELECT COUNT(DISTINCT t.id) as count
+        FROM teas t
+        INNER JOIN tea_flavors tf ON t.id = tf.teaId
+        WHERE tf.flavorId = ?
+      ''';
+      
+      final whereArgs = <dynamic>[flavor['id']];
+      
+      // Добавляем условия фильтрации
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        sql += '''
+          AND (
+            t.name LIKE ? OR 
+            t.description LIKE ? OR 
+            t.brewingGuide LIKE ? OR 
+            t.temperature LIKE ? OR 
+            t.weight LIKE ?
+          )
+        ''';
+        final searchPattern = '%$searchQuery%';
+        whereArgs.addAll([searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]);
+      }
+
+      if (countryIds.isNotEmpty) {
+        final placeholders = countryIds.map((_) => '?').join(',');
+        sql += ' AND t.countryId IN ($placeholders) ';
+        whereArgs.addAll(countryIds);
+      }
+
+      if (typeIds.isNotEmpty) {
+        final placeholders = typeIds.map((_) => '?').join(',');
+        sql += ' AND t.typeId IN ($placeholders) ';
+        whereArgs.addAll(typeIds);
+      }
+
+      if (appearanceIds.isNotEmpty) {
+        final placeholders = appearanceIds.map((_) => '?').join(',');
+        sql += ' AND t.appearanceId IN ($placeholders) ';
+        whereArgs.addAll(appearanceIds);
+      }
+
+      if (flavorIds.isNotEmpty) {
+        final placeholders = flavorIds.map((_) => '?').join(',');
+        sql += ' AND tf.flavorId IN ($placeholders) ';
+        whereArgs.addAll(flavorIds);
+      }
+      
+      final countResult = await db.rawQuery(sql, whereArgs);
+      final count = Sqflite.firstIntValue(countResult) ?? 0;
+      
+      result.add({
+        'id': flavor['id'] as int,
+        'name': flavor['name'] as String,
+        'count': count,
+      });
+    }
+    
+    return result;
   }
 }

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:riverpod/riverpod.dart';
 import 'package:tea/api/appearance_api.dart';
 import 'package:tea/api/country_api.dart';
 import 'package:tea/api/dto/create_tea_dto.dart';
@@ -11,6 +10,7 @@ import 'package:tea/api/flavor_api.dart';
 import 'package:tea/api/responses/appearance_response.dart';
 import 'package:tea/api/responses/country_response.dart';
 import 'package:tea/api/responses/flavor_response.dart';
+import 'package:tea/api/responses/facet_response.dart';
 import 'package:tea/api/responses/tea_response.dart';
 import 'package:tea/api/responses/type_response.dart';
 import 'package:tea/api/tea_api.dart';
@@ -20,6 +20,7 @@ import 'package:tea/services/local_database_service.dart';
 import 'package:tea/services/network_service.dart';
 import 'package:tea/services/image_cache_service.dart';
 import 'package:tea/utils/app_logger.dart';
+import 'package:tea/utils/filter_type.dart';
 
 // Структура для пагинации
 class PaginationResult<T> {
@@ -28,6 +29,7 @@ class PaginationResult<T> {
   final int totalPages;
   final int perPage;
   final bool hasMore;
+  final int totalCount; // Добавляем поле totalCount
 
   PaginationResult({
     required this.data,
@@ -35,6 +37,7 @@ class PaginationResult<T> {
     required this.totalPages,
     required this.perPage,
     required this.hasMore,
+    required this.totalCount, // Добавляем totalCount в конструктор
   });
 }
 
@@ -49,6 +52,50 @@ final teaListProvider = FutureProvider.family<PaginationResult<TeaModel>, int>((
   final controller = ref.watch(teaControllerProvider);
   return controller.fetchFullTeas(page: page);
 });
+
+// Provider для фильтрованного списка чаёв
+final filteredTeaListProvider = FutureProvider.family<PaginationResult<TeaModel>, Map<String, dynamic>>((ref, filterParams) {
+  final controller = ref.watch(teaControllerProvider);
+  return controller.fetchFilteredTeas(filterParams);
+});
+
+// Класс для управления параметрами фильтрации
+class FilterParamsNotifier extends Notifier<Map<String, dynamic>> {
+  @override
+  Map<String, dynamic> build() {
+    return {};
+  }
+
+  void update(Map<String, dynamic> newParams) {
+    AppLogger.debug('FilterParamsNotifier: Обновление параметров фильтрации: $newParams');
+    state = Map.from(newParams);
+    AppLogger.debug('FilterParamsNotifier: Состояние обновлено, новый размер: ${state.length}');
+  }
+
+  void clear() {
+    AppLogger.debug('FilterParamsNotifier: Очистка параметров фильтрации');
+    state = {};
+    AppLogger.debug('FilterParamsNotifier: Параметры фильтрации очищены');
+  }
+}
+
+// Класс для управления типом фильтров
+class FilterTypeNotifier extends Notifier<FilterType> {
+  @override
+  FilterType build() {
+    return FilterType.multiSelect;
+  }
+
+  void update(FilterType newType) {
+    state = newType;
+  }
+}
+
+// Provider для управления фильтрами
+final filterParamsProvider = NotifierProvider<FilterParamsNotifier, Map<String, dynamic>>(FilterParamsNotifier.new);
+
+// Provider для типа фильтров
+final filterTypeProvider = NotifierProvider<FilterTypeNotifier, FilterType>(FilterTypeNotifier.new);
 
 class TeaController {
   final TeaApi _teaApi = TeaApi();
@@ -262,11 +309,14 @@ class TeaController {
         // Получаем метаданные для заполнения названий
         final metadata = await _getMetadata();
         
-        AppLogger.debug('Вызов getTeasPaginatedWithNames в оффлайн-режиме');
-        
-        final pageTeas = await _localDatabase.getTeasPaginatedWithNames(
+        final pageTeas = await _localDatabase.getFilteredTeasWithNames(
           page: page, 
           perPage: perPage,
+          searchQuery: null,
+          countryIds: [],
+          typeIds: [],
+          appearanceIds: [],
+          flavorIds: [],
           countries: metadata['countries'] as List<CountryResponse>,
           types: metadata['types'] as List<TypeResponse>,
           appearances: metadata['appearances'] as List<AppearanceResponse>,
@@ -284,6 +334,7 @@ class TeaController {
           totalPages: totalPages,
           perPage: perPage,
           hasMore: hasMore,
+          totalCount: totalTeasCount, // Передаем totalCount
         );
       } catch (offlineError) {
         AppLogger.error('Ошибка при получении данных из локальной базы', error: offlineError);
@@ -296,6 +347,7 @@ class TeaController {
             totalPages: 0,
             perPage: perPage,
             hasMore: false,
+            totalCount: 0, // Передаем totalCount
           );
         }
         rethrow;
@@ -339,6 +391,7 @@ class TeaController {
         totalPages: paginatedResponse.totalPages,
         perPage: paginatedResponse.perPage,
         hasMore: paginatedResponse.hasMore,
+        totalCount: paginatedResponse.totalCount, // Используем totalCount из paginatedResponse
       );
           } catch (e, stack) {
             AppLogger.error('Ошибка при получении данных из API, переключаемся на оффлайн-режим', error: e, stackTrace: stack);
@@ -353,11 +406,14 @@ class TeaController {
               // Получаем метаданные для заполнения названий
               final metadata = await _getMetadata();
               
-              AppLogger.debug('Вызов getTeasPaginatedWithNames в оффлайн-режиме после ошибки API');
-              
-              final pageTeas = await _localDatabase.getTeasPaginatedWithNames(
+              final pageTeas = await _localDatabase.getFilteredTeasWithNames(
                 page: page, 
                 perPage: perPage,
+                searchQuery: null,
+                countryIds: [],
+                typeIds: [],
+                appearanceIds: [],
+                flavorIds: [],
                 countries: metadata['countries'] as List<CountryResponse>,
                 types: metadata['types'] as List<TypeResponse>,
                 appearances: metadata['appearances'] as List<AppearanceResponse>,
@@ -375,6 +431,7 @@ class TeaController {
                 totalPages: totalPages,
                 perPage: perPage,
                 hasMore: hasMore,
+                totalCount: totalTeasCount, // Передаем totalCount
               );
             } catch (offlineError) {
               AppLogger.error('Ошибка при получении данных из локальной базы', error: offlineError);
@@ -387,63 +444,258 @@ class TeaController {
                   totalPages: 0,
                   perPage: perPage,
                   hasMore: false,
+                  totalCount: 0, // Передаем totalCount
                 );
               }
               rethrow;
             }    }
   }
 
-  // Метод для получения одного чая
-  Future<TeaResponse> getTea(int teaId) async {
-    if (await _networkService.checkConnection()) {
-      // Онлайн режим
-      final teaResponse = await _teaApi.getTea(teaId);
+  // Свойства для получения метаданных
+  Future<List<CountryResponse>> get countries async => _localDatabase.getCountries();
+  Future<List<TypeResponse>> get types async => _localDatabase.getTypes();
+  Future<List<AppearanceResponse>> get appearances async => _localDatabase.getAppearances();
+  Future<List<FlavorResponse>> get flavors async => _localDatabase.getFlavors();
+
+  // Метод для применения фильтров
+  void applyFilters(Map<String, dynamic> filterParams) {
+    // В этом приложении фильтрация обрабатывается в HomeScreen
+    // Этот метод может быть использован для дополнительной логики при необходимости
+  }
+  // Метод для получения отфильтрованных чаёв
+  Future<PaginationResult<TeaModel>> fetchFilteredTeas(Map<String, dynamic> filterParams) async {
+    // Загружаем время последней ошибки API при первом вызове
+    if (_lastApiError == null) {
+      await _loadLastApiError();
+    }
+    
+    // Проверяем, не было ли недавно ошибки API
+    bool recentApiError = _lastApiError != null && 
+        DateTime.now().difference(_lastApiError!) < _apiErrorTimeout;
+    
+    // Проверяем подключение
+    bool hasConnection = false;
+    if (!recentApiError) {
+      try {
+        // Проверяем подключение с обработкой возможных ошибок
+        hasConnection = await _networkService.checkConnection();
+      } catch (e) {
+        AppLogger.error('Ошибка при проверке подключения', error: e);
+        hasConnection = false; // Если не удалось проверить, считаем, что нет подключения
+      }
+    }
+    
+    // Если недавно была ошибка API или нет подключения, сразу идем в оффлайн режим
+    if (recentApiError || !hasConnection) {
+      // Оффлайн режим - получаем данные из локальной базы с фильтрацией
+      AppLogger.debug('Загрузка отфильтрованных данных в оффлайн-режиме');
       
-      // Обновляем в локальной базе
+      try {
+        // Получаем метаданные для заполнения названий
+        final metadata = await _getMetadata();
+        
+        // Получаем фильтрованные данные из локальной базы
+        final pageTeas = await _localDatabase.getFilteredTeasWithNames(
+          page: filterParams['page'] ?? 1,
+          perPage: filterParams['perPage'] ?? 10,
+          searchQuery: filterParams['search'],
+          countryIds: (filterParams['countries'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          typeIds: (filterParams['types'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          appearanceIds: (filterParams['appearances'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          flavorIds: (filterParams['flavors'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          countries: metadata['countries'] as List<CountryResponse>,
+          types: metadata['types'] as List<TypeResponse>,
+          appearances: metadata['appearances'] as List<AppearanceResponse>,
+          flavors: metadata['flavors'] as List<FlavorResponse>,
+        );
+        
+        final totalTeasCount = await _localDatabase.getTotalTeasCountWithFilters(
+          searchQuery: filterParams['search'],
+          countryIds: (filterParams['countries'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          typeIds: (filterParams['types'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          appearanceIds: (filterParams['appearances'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          flavorIds: (filterParams['flavors'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+        );
+        
+        final totalPages = (totalTeasCount / (filterParams['perPage'] ?? 10)).ceil();
+        final hasMore = ((filterParams['page'] ?? 1) * (filterParams['perPage'] ?? 10)) < totalTeasCount;
+        
+        AppLogger.debug('Получено ${pageTeas.length} отфильтрованных чаёв из локальной базы, всего: $totalTeasCount, totalPages: $totalTeasCount, hasMore: $hasMore');
+        
+        return PaginationResult(
+          data: pageTeas,
+          currentPage: filterParams['page'] ?? 1,
+          totalPages: totalPages,
+          perPage: filterParams['perPage'] ?? 10,
+          hasMore: hasMore,
+          totalCount: totalTeasCount, // Передаем totalCount
+        );
+      } catch (offlineError) {
+        AppLogger.error('Ошибка при получении отфильтрованных данных из локальной базы', error: offlineError);
+        // Если ошибка связана с отсутствием метаданных, возвращаем пустой результат
+        if (offlineError.toString().contains('no such table')) {
+          AppLogger.debug('Таблицы метаданных не существуют, возвращаем пустой результат');
+          return PaginationResult(
+            data: [],
+            currentPage: filterParams['page'] ?? 1,
+            totalPages: 0,
+            perPage: filterParams['perPage'] ?? 10,
+            hasMore: false,
+            totalCount: 0, // Передаем totalCount
+          );
+        }
+        rethrow;
+      }
+    }
+    
+    // Онлайн режим - получаем данные с сервера с фильтрацией
+    try {
+      AppLogger.debug('Загрузка отфильтрованных данных в онлайн-режиме');
+      
+      final paginatedResponse = await _teaApi.getFilteredTeas(filterParams);
+      
+      // Получаем метаданные для правильного преобразования
       final metadata = await _getMetadata();
-      final teaModel = TeaModel.fromResponse(
-        response: teaResponse,
+      
+      // Сохраняем полученные данные в локальную базу
+      AppLogger.debug('Сохранение ${paginatedResponse.data.length} отфильтрованных чаёв в локальную базу');
+      for (final teaResponse in paginatedResponse.data) {
+        final teaModel = TeaModel.fromApiResponseForDatabase(
+          response: teaResponse,
+        );
+        await _localDatabase.insertTea(teaModel);
+      }
+      
+      // Преобразуем полученные данные в модель
+      final teas = paginatedResponse.data.map((response) => TeaModel.fromResponse(
+        response: response,
         countries: metadata['countries'] as List<CountryResponse>,
         types: metadata['types'] as List<TypeResponse>,
         appearances: metadata['appearances'] as List<AppearanceResponse>,
         flavors: metadata['flavors'] as List<FlavorResponse>,
+      )).toList();
+      
+      return PaginationResult(
+        data: teas,
+        currentPage: paginatedResponse.currentPage,
+        totalPages: paginatedResponse.totalPages,
+        perPage: paginatedResponse.perPage,
+        hasMore: paginatedResponse.hasMore,
+        totalCount: paginatedResponse.totalCount, // Используем totalCount из paginatedResponse
+      );
+    } catch (e, stack) {
+      AppLogger.error('Ошибка при получении отфильтрованных данных из API, переключаемся на оффлайн-режим', error: e, stackTrace: stack);
+      // Запоминаем время последней ошибки
+      _lastApiError = DateTime.now();
+      // Сохраняем в локальное хранилище
+      await _saveLastApiError();
+      
+      // Получаем данные из локальной базы
+      try {
+        AppLogger.debug('Загрузка отфильтрованных данных в оффлайн-режиме после ошибки API');
+        // Получаем метаданные для заполнения названий
+        final metadata = await _getMetadata();
+        
+        final pageTeas = await _localDatabase.getFilteredTeasWithNames(
+          page: filterParams['page'] ?? 1,
+          perPage: filterParams['perPage'] ?? 10,
+          searchQuery: filterParams['search'],
+          countryIds: (filterParams['countries'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          typeIds: (filterParams['types'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          appearanceIds: (filterParams['appearances'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          flavorIds: (filterParams['flavors'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          countries: metadata['countries'] as List<CountryResponse>,
+          types: metadata['types'] as List<TypeResponse>,
+          appearances: metadata['appearances'] as List<AppearanceResponse>,
+          flavors: metadata['flavors'] as List<FlavorResponse>,
+        );
+        
+        final totalTeasCount = await _localDatabase.getTotalTeasCountWithFilters(
+          searchQuery: filterParams['search'],
+          countryIds: (filterParams['countries'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          typeIds: (filterParams['types'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          appearanceIds: (filterParams['appearances'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+          flavorIds: (filterParams['flavors'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [],
+        );
+        
+        final totalPages = (totalTeasCount / (filterParams['perPage'] ?? 10)).ceil();
+        final hasMore = ((filterParams['page'] ?? 1) * (filterParams['perPage'] ?? 10)) < totalTeasCount;
+        
+        AppLogger.debug('Получено ${pageTeas.length} отфильтрованных чаёв из локальной базы, всего: $totalTeasCount, totalPages: $totalTeasCount, hasMore: $hasMore');
+        
+        return PaginationResult(
+          data: pageTeas,
+          currentPage: filterParams['page'] ?? 1,
+          totalPages: totalPages,
+          perPage: filterParams['perPage'] ?? 10,
+          hasMore: hasMore,
+          totalCount: totalTeasCount, // Передаем totalCount
+        );
+      } catch (offlineError) {
+        AppLogger.error('Ошибка при получении отфильтрованных данных из локальной базы', error: offlineError);
+        // Если ошибка связана с отсутствием метаданных, возвращаем пустой результат
+        if (offlineError.toString().contains('no such table')) {
+          AppLogger.debug('Таблицы метаданных не существуют, возвращаем пустой результат');
+          return PaginationResult(
+            data: [],
+            currentPage: filterParams['page'] ?? 1,
+            totalPages: 0,
+            perPage: filterParams['perPage'] ?? 10,
+            hasMore: false,
+            totalCount: 0, // Передаем totalCount
+          );
+        }
+        rethrow;
+      }
+    }
+  }
+
+  // Метод для получения одного чая
+  Future<TeaModel> getTea(int id) async {
+    try {
+      // Сначала пытаемся получить из локальной базы
+      final localTea = await _localDatabase.getTea(id);
+      if (localTea != null) {
+        // Получаем метаданные для заполнения названий
+        final metadata = await _getMetadata();
+              return TeaModel.fromLocalDB(
+                id: localTea.id,
+                name: localTea.name,
+                countryId: localTea.country,
+                typeId: localTea.type,
+                appearanceId: localTea.appearance,
+                temperature: localTea.temperature,
+                brewingGuide: localTea.brewingGuide,
+                weight: localTea.weight,
+                description: localTea.description,
+                flavorIds: localTea.flavors,
+                images: localTea.images,
+                countries: metadata['countries'] as List<CountryResponse>,
+                types: metadata['types'] as List<TypeResponse>,
+                appearances: metadata['appearances'] as List<AppearanceResponse>,
+                flavors: metadata['flavors'] as List<FlavorResponse>,
+              );      }
+
+      // Если в локальной базе нет, получаем с API
+      final response = await _teaApi.getTea(id);
+      final metadata = await _getMetadata();
+      
+      // Сохраняем в локальную базу
+      final teaModel = TeaModel.fromApiResponseForDatabase(
+        response: response,
       );
       await _localDatabase.insertTea(teaModel);
       
-      return teaResponse;
-    } else {
-      // Оффлайн режим
-      // Получаем метаданные для заполнения названий
-      final metadata = await _getMetadata();
-      
-      final teaModel = await _localDatabase.getTeaWithNames(
-        id: teaId,
+      return TeaModel.fromResponse(
+        response: response,
         countries: metadata['countries'] as List<CountryResponse>,
         types: metadata['types'] as List<TypeResponse>,
         appearances: metadata['appearances'] as List<AppearanceResponse>,
         flavors: metadata['flavors'] as List<FlavorResponse>,
       );
-      
-      if (teaModel != null) {
-        // Преобразуем TeaModel в TeaResponse
-        return TeaResponse(
-          id: teaModel.id,
-          name: teaModel.name,
-          countryId: teaModel.country != null ? int.tryParse(teaModel.country!) : null,
-          typeId: teaModel.type != null ? int.tryParse(teaModel.type!) : null,
-          appearanceId: teaModel.appearance != null ? int.tryParse(teaModel.appearance!) : null,
-          temperature: teaModel.temperature,
-          brewingGuide: teaModel.brewingGuide,
-          weight: teaModel.weight,
-          description: teaModel.description,
-          createdAt: DateTime.now().toIso8601String(),
-          updatedAt: DateTime.now().toIso8601String(),
-          flavors: teaModel.flavors.map((f) => int.tryParse(f)).where((f) => f != null).cast<int>().toList(),
-          images: [], // Для оффлайн режима пока возвращаем пустой список изображений
-        );
-      } else {
-        throw Exception('Чай не найден в оффлайн-режиме');
-      }
+    } catch (e, stack) {
+      AppLogger.error('Ошибка при получении чая', error: e, stackTrace: stack);
+      rethrow;
     }
   }
 
@@ -596,6 +848,8 @@ class TeaController {
   // Метод для получения потока изменения статуса подключения
   Stream<bool> get connectionStatusStream => _networkService.connectionStatusStream;
   
+
+
   // Метод для ручного запуска синхронизации
   Future<void> manualSync() async {
     if (await _networkService.checkConnection()) {
@@ -621,6 +875,158 @@ class TeaController {
       }
     } catch (e) {
       AppLogger.error('Ошибка при получении списка изображений для кеширования', error: e);
+    }
+  }
+  
+  // Метод для получения фасетов (количество чаёв по каждому фильтру)
+  Future<FacetResponse> getFacets(Map<String, dynamic> filterParams) async {
+    // Загружаем время последней ошибки API при первом вызове
+    if (_lastApiError == null) {
+      await _loadLastApiError();
+    }
+    
+    // Проверяем, не было ли недавно ошибки API
+    bool recentApiError = _lastApiError != null && 
+        DateTime.now().difference(_lastApiError!) < _apiErrorTimeout;
+    
+    // Проверяем подключение
+    bool hasConnection = false;
+    if (!recentApiError) {
+      try {
+        // Проверяем подключение с обработкой возможных ошибок
+        hasConnection = await _networkService.checkConnection();
+      } catch (e) {
+        AppLogger.error('Ошибка при проверке подключения', error: e);
+        hasConnection = false; // Если не удалось проверить, считаем, что нет подключения
+      }
+    }
+    
+    // Если недавно была ошибка API или нет подключения, используем оффлайн режим
+    if (recentApiError || !hasConnection) {
+      AppLogger.debug('Загрузка фасетов в оффлайн-режиме');
+      try {
+        // Парсим параметры фильтрации
+        final searchQuery = filterParams['search']?.toString();
+        final countryIds = (filterParams['countries'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [];
+        final typeIds = (filterParams['types'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [];
+        final appearanceIds = (filterParams['appearances'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [];
+        final flavorIds = (filterParams['flavors'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [];
+        
+        // В оффлайн режиме возвращаем фильтры с подсчетом из локальной базы с учетом текущих фильтров
+        final countries = await _localDatabase.getFilteredCountriesWithCount(
+          searchQuery: searchQuery,
+          countryIds: countryIds,
+          typeIds: typeIds,
+          appearanceIds: appearanceIds,
+          flavorIds: flavorIds,
+        );
+        final types = await _localDatabase.getFilteredTypesWithCount(
+          searchQuery: searchQuery,
+          countryIds: countryIds,
+          typeIds: typeIds,
+          appearanceIds: appearanceIds,
+          flavorIds: flavorIds,
+        );
+        final appearances = await _localDatabase.getFilteredAppearancesWithCount(
+          searchQuery: searchQuery,
+          countryIds: countryIds,
+          typeIds: typeIds,
+          appearanceIds: appearanceIds,
+          flavorIds: flavorIds,
+        );
+        final flavors = await _localDatabase.getFilteredFlavorsWithCount(
+          searchQuery: searchQuery,
+          countryIds: countryIds,
+          typeIds: typeIds,
+          appearanceIds: appearanceIds,
+          flavorIds: flavorIds,
+        );
+        
+        return FacetResponse(
+          countries: countries.map((item) => FacetItem(id: item['id'], name: item['name'], count: item['count'])).toList(),
+          types: types.map((item) => FacetItem(id: item['id'], name: item['name'], count: item['count'])).toList(),
+          appearances: appearances.map((item) => FacetItem(id: item['id'], name: item['name'], count: item['count'])).toList(),
+          flavors: flavors.map((item) => FacetItem(id: item['id'], name: item['name'], count: item['count'])).toList(),
+        );
+      } catch (offlineError) {
+        AppLogger.error('Ошибка при получении фасетов из локальной базы', error: offlineError);
+        // Возвращаем пустые фасеты в случае ошибки
+        return FacetResponse(
+          countries: [],
+          types: [],
+          appearances: [],
+          flavors: [],
+        );
+      }
+    }
+    
+    // Онлайн режим - получаем фасеты с сервера
+    try {
+      AppLogger.debug('Загрузка фасетов в онлайн-режиме');
+      final response = await _teaApi.getFacets(filterParams);
+      return response;
+    } catch (e, stack) {
+      AppLogger.error('Ошибка при получении фасетов из API, переключаемся на оффлайн-режим', error: e, stackTrace: stack);
+      // Запоминаем время последней ошибки
+      _lastApiError = DateTime.now();
+      // Сохраняем в локальное хранилище
+      await _saveLastApiError();
+      
+      // Возвращаем фасеты из локальной базы с учетом фильтров
+      try {
+        AppLogger.debug('Загрузка фасетов из локальной базы после ошибки API');
+        // Парсим параметры фильтрации
+        final searchQuery = filterParams['search']?.toString();
+        final countryIds = (filterParams['countries'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [];
+        final typeIds = (filterParams['types'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [];
+        final appearanceIds = (filterParams['appearances'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [];
+        final flavorIds = (filterParams['flavors'] as String?)?.split(',').map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList() ?? [];
+        
+        final countries = await _localDatabase.getFilteredCountriesWithCount(
+          searchQuery: searchQuery,
+          countryIds: countryIds,
+          typeIds: typeIds,
+          appearanceIds: appearanceIds,
+          flavorIds: flavorIds,
+        );
+        final types = await _localDatabase.getFilteredTypesWithCount(
+          searchQuery: searchQuery,
+          countryIds: countryIds,
+          typeIds: typeIds,
+          appearanceIds: appearanceIds,
+          flavorIds: flavorIds,
+        );
+        final appearances = await _localDatabase.getFilteredAppearancesWithCount(
+          searchQuery: searchQuery,
+          countryIds: countryIds,
+          typeIds: typeIds,
+          appearanceIds: appearanceIds,
+          flavorIds: flavorIds,
+        );
+        final flavors = await _localDatabase.getFilteredFlavorsWithCount(
+          searchQuery: searchQuery,
+          countryIds: countryIds,
+          typeIds: typeIds,
+          appearanceIds: appearanceIds,
+          flavorIds: flavorIds,
+        );
+        
+        return FacetResponse(
+          countries: countries.map((item) => FacetItem(id: item['id'], name: item['name'], count: item['count'])).toList(),
+          types: types.map((item) => FacetItem(id: item['id'], name: item['name'], count: item['count'])).toList(),
+          appearances: appearances.map((item) => FacetItem(id: item['id'], name: item['name'], count: item['count'])).toList(),
+          flavors: flavors.map((item) => FacetItem(id: item['id'], name: item['name'], count: item['count'])).toList(),
+        );
+      } catch (localError) {
+        AppLogger.error('Ошибка при получении фасетов из локальной базы в оффлайн-режиме', error: localError);
+        // Возвращаем пустые фасеты в случае ошибки
+        return FacetResponse(
+          countries: [],
+          types: [],
+          appearances: [],
+          flavors: [],
+        );
+      }
     }
   }
 }

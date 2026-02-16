@@ -34,19 +34,19 @@ class TeaResponse {
 
   factory TeaResponse.fromJson(Map<String, dynamic> json) {
     return TeaResponse(
-      id: json['id'],
-      name: json['name'],
-      countryId: json['countryId'],
-      typeId: json['typeId'],
-      appearanceId: json['appearanceId'],
+      id: json['id'] as int? ?? 0,
+      name: json['name'] as String? ?? '',
+      countryId: json['countryId'] ?? json['country_id'],
+      typeId: json['typeId'] ?? json['type_id'],
+      appearanceId: json['appearanceId'] ?? json['appearance_id'],
       temperature: json['temperature'],
-      brewingGuide: json['brewingGuide'],
+      brewingGuide: json['brewingGuide'] ?? json['brewing_guide'],
       weight: json['weight'],
       description: json['description'],
-      createdAt: json['createdAt'],
-      updatedAt: json['updatedAt'],
-      flavors: JsonUtils.parseList<int>(json['Flavors'], (item) => item as int),
-      images: JsonUtils.parseList<ImageModel>(json['Images'], (item) => ImageModel.fromJson(item)),
+      createdAt: json['createdAt'] as String? ?? '',
+      updatedAt: json['updatedAt'] as String? ?? '',
+      flavors: JsonUtils.parseList<int>(json['Flavors'] ?? json['flavors'], (item) => item as int),
+      images: JsonUtils.parseList<ImageModel>(json['Images'] ?? json['images'], (item) => ImageModel.fromJson(item)),
     );
   }
 }

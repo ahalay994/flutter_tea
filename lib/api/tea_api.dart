@@ -2,6 +2,8 @@ import 'package:tea/api/api_client.dart';
 import 'package:tea/api/dto/create_tea_dto.dart';
 import 'package:tea/api/responses/tea_response.dart';
 import 'package:tea/api/responses/api_response.dart';
+import 'package:tea/api/responses/facet_response.dart';
+import 'package:tea/utils/app_logger.dart';
 
 // Структура для ответа с пагинацией
 class PaginatedTeaResponse {
@@ -10,6 +12,7 @@ class PaginatedTeaResponse {
   final int totalPages;
   final int perPage;
   final bool hasMore;
+  final int totalCount; // Добавляем поле totalCount
 
   PaginatedTeaResponse({
     required this.data,
@@ -17,18 +20,36 @@ class PaginatedTeaResponse {
     required this.totalPages,
     required this.perPage,
     required this.hasMore,
+    required this.totalCount, // Добавляем totalCount в конструктор
   });
 
   factory PaginatedTeaResponse.fromJson(Map<String, dynamic> json) {
     final dataList = json['data'] as List;
     final data = dataList.map((item) => TeaResponse.fromJson(item as Map<String, dynamic>)).toList();
     
+    // Проверяем, есть ли объект pagination
+    Map<String, dynamic>? pagination;
+    if (json['pagination'] != null && json['pagination'] is Map) {
+      pagination = json['pagination'] as Map<String, dynamic>;
+    } else {
+      // Если pagination нет, используем значения по умолчанию
+      return PaginatedTeaResponse(
+        data: data,
+        currentPage: json['currentPage'] as int? ?? 1,
+        totalPages: json['totalPages'] as int? ?? 1,
+        perPage: json['perPage'] as int? ?? 10,
+        hasMore: json['hasMore'] as bool? ?? false,
+        totalCount: json['totalCount'] as int? ?? 0, // Используем totalCount из основного объекта
+      );
+    }
+    
     return PaginatedTeaResponse(
       data: data,
-      currentPage: json['pagination']['currentPage'] as int? ?? 1,
-      totalPages: json['pagination']['totalPages'] as int? ?? 1,
-      perPage: json['pagination']['perPage'] as int? ?? 10,
-      hasMore: json['pagination']['hasMore'] as bool? ?? false,
+      currentPage: pagination['currentPage'] as int? ?? 1,
+      totalPages: pagination['totalPages'] as int? ?? 1,
+      perPage: pagination['perPage'] as int? ?? 10,
+      hasMore: pagination['hasMore'] as bool? ?? false,
+      totalCount: pagination['totalCount'] as int? ?? 0, // Используем totalCount из объекта pagination
     );
   }
 }
@@ -46,9 +67,21 @@ class TeaApi extends Api {
   
   // Метод для получения чаёв с пагинацией
   Future<PaginatedTeaResponse> getTeasPaginated({int page = 1, int perPage = 10}) async {
-    final response = await getRequest('/tea');
+    // Формируем query параметры для пагинации
+    final queryString = 'page=$page&perPage=$perPage';
+    final response = await getRequest('/tea/pagination?$queryString');
 
     if (response.ok) {
+      // Если сервер возвращает объект с пагинацией
+      if (response.data is Map<String, dynamic>) {
+        try {
+          return PaginatedTeaResponse.fromJson(response.data as Map<String, dynamic>);
+        } catch (e) {
+          // Если не удалось распарсить как PaginatedTeaResponse, обрабатываем как просто список
+          AppLogger.debug('Не удалось распарсить ответ как PaginatedTeaResponse: $e');
+        }
+      }
+      
       // Если сервер возвращает просто список, оборачиваем его в объект пагинации
       if (response.data is List) {
         final dataList = response.data as List;
@@ -60,13 +93,11 @@ class TeaApi extends Api {
           totalPages: 1, // Временно устанавливаем 1, пока не будет настоящей пагинации
           perPage: perPage,
           hasMore: false, // Временно false
+          totalCount: teas.length, // Устанавливаем totalCount как длину списка
         );
-      } else if (response.data is Map<String, dynamic>) {
-        // Если сервер возвращает объект с пагинацией
-        return PaginatedTeaResponse.fromJson(response.data as Map<String, dynamic>);
-      } else {
-        throw Exception("Неправильный формат данных");
       }
+      
+      throw Exception("Неправильный формат данных");
     } else {
       throw Exception(response.message ?? "Ошибка при получении списка чаёв с пагинацией");
     }
@@ -109,6 +140,66 @@ class TeaApi extends Api {
     return response;
   }
   
+  // Метод для получения отфильтрованных чаёв с пагинацией
+  Future<PaginatedTeaResponse> getFilteredTeas(Map<String, dynamic> filterParams) async {
+    // Формируем query параметры
+    final queryParams = <String, String>{};
+    
+    if (filterParams['search'] != null) {
+      queryParams['search'] = filterParams['search'].toString();
+    }
+    
+    if (filterParams['countries'] != null) {
+      queryParams['countries'] = filterParams['countries'].toString();
+    }
+    
+    if (filterParams['types'] != null) {
+      queryParams['types'] = filterParams['types'].toString();
+    }
+    
+    if (filterParams['appearances'] != null) {
+      queryParams['appearances'] = filterParams['appearances'].toString();
+    }
+    
+    if (filterParams['flavors'] != null) {
+      queryParams['flavors'] = filterParams['flavors'].toString();
+    }
+    
+    // Добавляем пагинацию
+    queryParams['page'] = (filterParams['page'] ?? 1).toString();
+    queryParams['perPage'] = (filterParams['perPage'] ?? 10).toString();
+    
+    final queryString = queryParams.entries
+        .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    
+    final response = await getRequest('/tea/pagination${queryString.isNotEmpty ? '?' + queryString : ''}');
+
+    if (response.ok) {
+      // Если сервер возвращает объект с пагинацией
+      if (response.data is Map<String, dynamic>) {
+        return PaginatedTeaResponse.fromJson(response.data as Map<String, dynamic>);
+      } else if (response.data is List) {
+        // Если сервер возвращает просто список, создаем объект пагинации
+        final dataList = response.data as List;
+        final teas = dataList.map((item) => TeaResponse.fromJson(item as Map<String, dynamic>)).toList();
+        
+        return PaginatedTeaResponse(
+          data: teas,
+          currentPage: int.tryParse(queryParams['page'] ?? '1') ?? 1,
+          totalPages: 1, // Временно, пока не будет настоящей пагинации от сервера
+          perPage: int.tryParse(queryParams['perPage'] ?? '10') ?? 10,
+          hasMore: false, // Временно false
+          totalCount: teas.length, // Устанавливаем totalCount как длину списка
+        );
+      } else {
+        throw Exception("Неправильный формат данных");
+      }
+    } else {
+      throw Exception(response.message ?? "Ошибка при получении отфильтрованного списка чаёв");
+    }
+  }
+  
   // Метод для получения чая по ID
   Future<TeaResponse> getTea(int teaId) async {
     final response = await getRequest('/tea/$teaId');
@@ -117,6 +208,48 @@ class TeaApi extends Api {
       return TeaResponse.fromJson(response.data as Map<String, dynamic>);
     } else {
       throw Exception(response.message ?? "Ошибка при получении чая");
+    }
+  }
+}
+
+
+
+// Метод для получения фасетов (количество чаёв по каждому фильтру)
+extension TeaApiFacets on TeaApi {
+  Future<FacetResponse> getFacets(Map<String, dynamic> filterParams) async {
+    // Формируем query параметры
+    final queryParams = <String, String>{};
+    
+    if (filterParams['search'] != null) {
+      queryParams['search'] = filterParams['search'].toString();
+    }
+    
+    if (filterParams['countries'] != null) {
+      queryParams['countries'] = filterParams['countries'].toString();
+    }
+    
+    if (filterParams['types'] != null) {
+      queryParams['types'] = filterParams['types'].toString();
+    }
+    
+    if (filterParams['appearances'] != null) {
+      queryParams['appearances'] = filterParams['appearances'].toString();
+    }
+    
+    if (filterParams['flavors'] != null) {
+      queryParams['flavors'] = filterParams['flavors'].toString();
+    }
+    
+    final queryString = queryParams.entries
+        .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    
+    final response = await getRequest('/tea/facets${queryString.isNotEmpty ? '?' + queryString : ''}');
+
+    if (response.ok && response.data != null) {
+      return FacetResponse.fromJson(response.data as Map<String, dynamic>);
+    } else {
+      throw Exception(response.message ?? "Ошибка при получении фасетов");
     }
   }
 }
