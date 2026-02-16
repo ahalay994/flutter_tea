@@ -87,8 +87,12 @@ workflows:
         script: |
           # Запускаем сборку IPA с отключенной подписью
           flutter build ipa --release --no-codesign
-          # После успешной сборки, IPA файл будет в build/ios/ipa/Runner.ipa
+          # Выводим список файлов в директории build для проверки
+          ls -la build/
+          ls -la build/ios/
+          ls -la build/ios/ipa/
     artifacts:
+      - build/ios/ipa/*.ipa
       - build/ios/ipa/Runner.ipa
     publishing:
       email:
@@ -142,9 +146,13 @@ workflows:
         script: |
           # Запускаем сборку IPA с отключенной подписью
           flutter build ipa --release --no-codesign
-          # После успешной сборки, IPA файл будет в build/ios/ipa/Runner.ipa
+          # Выводим список файлов в директории build для проверки
+          ls -la build/
+          ls -la build/ios/
+          ls -la build/ios/ipa/
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
+      - build/ios/ipa/*.ipa
       - build/ios/ipa/Runner.ipa
     publishing:
       email:
