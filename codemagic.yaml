@@ -42,6 +42,11 @@ workflows:
       - name: Analyze code
         script: |
           flutter analyze --no-fatal-infos --no-fatal-warnings
+      # Обновляем название приложения (для Android и iOS)
+      - name: Update app name from environment variables
+        script: |
+          chmod +x ./ios/update_app_name.sh
+          ./ios/update_app_name.sh  # Скрипт определит среду и обновит соответствующие файлы
       # Собираем APK
       - name: Build APK
         script: |
@@ -100,6 +105,11 @@ workflows:
       - name: Analyze code
         script: |
           flutter analyze --no-fatal-infos --no-fatal-warnings
+      # Обновляем название приложения в Info.plist
+      - name: Update app name in Info.plist
+        script: |
+          chmod +x ./ios/update_app_name.sh
+          ./ios/update_app_name.sh
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
@@ -172,6 +182,11 @@ workflows:
       - name: Build APK
         script: |
           flutter build apk --release --split-per-abi
+      # Обновляем название приложения в Info.plist
+      - name: Update app name in Info.plist
+        script: |
+          chmod +x ./ios/update_app_name.sh
+          ./ios/update_app_name.sh
       # Собираем iOS архив и создаем IPA
       - name: Build iOS IPA
         script: |
