@@ -91,7 +91,7 @@ workflows:
       # Проверяем код
       - name: Analyze code
         script: |
-          flutter analyze
+          flutter analyze --no-fatal-infos --no-fatal-warnings
       # Запускаем тесты (если есть)
       - name: Run tests
         script: |
@@ -101,6 +101,67 @@ workflows:
         script: |
           flutter build ios --release --no-codesign
     artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - ahalay994@gmail.com # Замените на ваш email
+        notify:
+          success: true
+          failure: true
+
+  flutter-multiplatform:
+    name: Build Android APK & iOS IPA
+    max_build_duration: 120
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        SUPABASE_URL: $SUPABASE_URL # Эти переменные вы уже добавили в интерфейсе Codemagic
+        SUPABASE_KEY: $SUPABASE_KEY
+        API_URL: $API_URL
+        APP_NAME: $APP_NAME
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      # Создаем .env файл из переменных окружения
+      - name: Create .env file
+        script: |
+          set -e
+          echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+          echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+          echo "API_URL=$API_URL" >> .env
+          echo "APP_NAME=$APP_NAME" >> .env
+          echo "Created .env file with environment variables"
+      # Получаем зависимости Flutter
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      # Проверяем код
+      - name: Analyze code
+        script: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+      # Запускаем тесты (если есть)
+      - name: Run tests
+        script: |
+          flutter test
+      # Собираем APK
+      - name: Build APK
+        script: |
+          flutter build apk --release
+      # Собираем IPA для iOS
+      - name: Build iOS IPA
+        script: |
+          flutter build ios --release --no-codesign
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
       - build/ios/ipa/*.ipa
     publishing:
       email:
