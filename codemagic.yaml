@@ -20,11 +20,20 @@ workflows:
       - name: Create .env file
         script: |
           set -e
-          echo "SUPABASE_URL=$SUPABASE_URL" >> .env
-          echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
-          echo "API_URL=$API_URL" >> .env
-          echo "APP_NAME=$APP_NAME" >> .env
-          echo "Created .env file with environment variables"
+          if [ ! -z "$SUPABASE_URL" ] && [ ! -z "$SUPABASE_KEY" ] && [ ! -z "$API_URL" ]; then
+            echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+            echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+            echo "API_URL=$API_URL" >> .env
+            echo "APP_NAME=$APP_NAME" >> .env
+            echo "Created .env file with environment variables"
+          else
+            echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+            echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+            echo "API_URL=$API_URL" >> .env
+            echo "APP_NAME=$APP_NAME" >> .env
+            echo "Created .env file with default values (some variables may be empty)"
+          fi
+          cat .env  # Выводим содержимое файла для отладки
       # Получаем зависимости Flutter
       - name: Get Flutter packages
         script: |
@@ -69,11 +78,20 @@ workflows:
       - name: Create .env file
         script: |
           set -e
-          echo "SUPABASE_URL=$SUPABASE_URL" >> .env
-          echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
-          echo "API_URL=$API_URL" >> .env
-          echo "APP_NAME=$APP_NAME" >> .env
-          echo "Created .env file with environment variables"
+          if [ ! -z "$SUPABASE_URL" ] && [ ! -z "$SUPABASE_KEY" ] && [ ! -z "$API_URL" ]; then
+            echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+            echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+            echo "API_URL=$API_URL" >> .env
+            echo "APP_NAME=$APP_NAME" >> .env
+            echo "Created .env file with environment variables"
+          else
+            echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+            echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+            echo "API_URL=$API_URL" >> .env
+            echo "APP_NAME=$APP_NAME" >> .env
+            echo "Created .env file with default values (some variables may be empty)"
+          fi
+          cat .env  # Выводим содержимое файла для отладки
       # Получаем зависимости Flutter
       - name: Get Flutter packages
         script: |
@@ -128,11 +146,20 @@ workflows:
       - name: Create .env file
         script: |
           set -e
-          echo "SUPABASE_URL=$SUPABASE_URL" >> .env
-          echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
-          echo "API_URL=$API_URL" >> .env
-          echo "APP_NAME=$APP_NAME" >> .env
-          echo "Created .env file with environment variables"
+          if [ ! -z "$SUPABASE_URL" ] && [ ! -z "$SUPABASE_KEY" ] && [ ! -z "$API_URL" ]; then
+            echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+            echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+            echo "API_URL=$API_URL" >> .env
+            echo "APP_NAME=$APP_NAME" >> .env
+            echo "Created .env file with environment variables"
+          else
+            echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+            echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+            echo "API_URL=$API_URL" >> .env
+            echo "APP_NAME=$APP_NAME" >> .env
+            echo "Created .env file with default values (some variables may be empty)"
+          fi
+          cat .env  # Выводим содержимое файла для отладки
       # Получаем зависимости Flutter
       - name: Get Flutter packages
         script: |
