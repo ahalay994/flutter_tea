@@ -5,6 +5,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/models/tea.dart';
+import 'package:tea/screens/edit/edit_screen.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:tea/widgets/image_gallery_view.dart';
 import 'package:tea/widgets/info_chip.dart';
@@ -323,7 +324,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     // Инвалидируем провайдер для страницы 1, чтобы обновить список чаёв
                     ref.invalidate(teaListProvider(1));
                     // Устанавливаем флаг обновления
-                    ref.read(refreshTeaListProvider.notifier).state = true;
+                    ref.read(refreshTeaListProvider.notifier).triggerRefresh();
                   }, // Обновляем список
                 );
                 

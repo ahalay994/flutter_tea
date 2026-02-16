@@ -238,7 +238,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // Сбрасываем флаг и перезагружаем список
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            ref.read(refreshTeaListProvider.notifier).state = false;
+            ref.read(refreshTeaListProvider.notifier).reset();
             setState(() {
               _currentPage = 1;
               _allTeas = [];

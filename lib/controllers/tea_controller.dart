@@ -1032,5 +1032,25 @@ class TeaController {
   }
 }
 
+// Класс для управления флагом обновления списка чаёв
+class RefreshNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return false;
+  }
+  
+  void setRefresh(bool value) {
+    state = value;
+  }
+  
+  void triggerRefresh() {
+    state = true;
+  }
+  
+  void reset() {
+    state = false;
+  }
+}
+
 // Провайдер для отслеживания необходимости обновления списка чаёв
-final refreshTeaListProvider = StateProvider<bool>((ref) => false);
+final refreshTeaListProvider = NotifierProvider<RefreshNotifier, bool>(RefreshNotifier.new);

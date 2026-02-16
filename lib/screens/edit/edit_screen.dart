@@ -73,7 +73,7 @@ class _EditScreenState extends ConsumerState<EditScreen> {
         // Инвалидируем список чаёв
         ref.invalidate(teaListProvider(1));
         // Устанавливаем флаг обновления
-        ref.read(refreshTeaListProvider.notifier).state = true;
+        ref.read(refreshTeaListProvider.notifier).triggerRefresh();
       });
       if (mounted) {
         Navigator.of(context).pop(true);
