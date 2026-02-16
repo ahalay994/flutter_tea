@@ -77,7 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       AppLogger.debug('Получены параметры фильтров: $filterParams');
       
       final teaController = ref.read(teaControllerProvider);
-      AppLogger.debug('Получен teaController: ${teaController != null}');
+      AppLogger.debug('Получен teaController');
       
       List<TeaModel> teaData;
       if (filterParams.isNotEmpty) {

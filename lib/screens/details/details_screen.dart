@@ -196,11 +196,9 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           ),
                         ),
                         if (_currentTea.weight != null && _currentTea.weight!.isNotEmpty)
-                          Container(
-                            child: Text(
-                              "${_currentTea.weight}",
-                              style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
-                            ),
+                          Text(
+                            "${_currentTea.weight}",
+                            style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
                           ),
                       ],
                     ),

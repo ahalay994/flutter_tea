@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tea/utils/app_config.dart';
+import 'package:tea/utils/app_logger.dart';
 import 'package:image/image.dart' as img;
 
 class SupabaseService {
@@ -8,13 +9,12 @@ class SupabaseService {
 
   void init([String? supabaseUrl, String? supabaseKey]) {
     String url = supabaseUrl ?? AppConfig.supabaseUrl;
-    String? key = supabaseKey ?? AppConfig.supabaseKey;
-    
-    if (url.isNotEmpty && key.isNotEmpty) {
-      _client = SupabaseClient(url, key);
-    } else {
-      print('Предупреждение: Supabase не будет инициализирован из-за отсутствия URL или ключа');
+    String key = supabaseKey ?? AppConfig.supabaseKey;
+    if (url.isEmpty || key.isEmpty) {
+      AppLogger.debug('Supabase не будет инициализирован из-за отсутствия URL или ключа');
+      return;
     }
+    _client = SupabaseClient(url, key);
   }
 
   SupabaseClient get supabase {

@@ -13,11 +13,11 @@ class CountryFilterWidget extends ConsumerStatefulWidget {
   final String searchQuery;
 
   const CountryFilterWidget({
-    Key? key,
+    super.key,
     required this.selectedCountries,
     required this.onSelectionChanged,
     required this.searchQuery,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CountryFilterWidget> createState() => _CountryFilterWidgetState();
@@ -136,11 +136,11 @@ class TypeFilterWidget extends ConsumerStatefulWidget {
   final String searchQuery;
 
   const TypeFilterWidget({
-    Key? key,
+    super.key,
     required this.selectedTypes,
     required this.onSelectionChanged,
     required this.searchQuery,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<TypeFilterWidget> createState() => _TypeFilterWidgetState();
@@ -259,11 +259,11 @@ class AppearanceFilterWidget extends ConsumerStatefulWidget {
   final String searchQuery;
 
   const AppearanceFilterWidget({
-    Key? key,
+    super.key,
     required this.selectedAppearances,
     required this.onSelectionChanged,
     required this.searchQuery,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<AppearanceFilterWidget> createState() => _AppearanceFilterWidgetState();
@@ -382,11 +382,11 @@ class FlavorFilterWidget extends ConsumerStatefulWidget {
   final String searchQuery;
 
   const FlavorFilterWidget({
-    Key? key,
+    super.key,
     required this.selectedFlavors,
     required this.onSelectionChanged,
     required this.searchQuery,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<FlavorFilterWidget> createState() => _FlavorFilterWidgetState();

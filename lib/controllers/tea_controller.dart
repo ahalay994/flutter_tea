@@ -19,7 +19,6 @@ import 'package:tea/models/tea.dart';
 import 'package:tea/services/local_database_service.dart';
 import 'package:tea/services/network_service.dart';
 import 'package:tea/services/image_cache_service.dart';
-import 'package:tea/utils/app_config.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/filter_type.dart';
 

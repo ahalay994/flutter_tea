@@ -15,12 +15,16 @@ import 'utils/app_config.dart';
 // Глобальная переменная для хранения контекста главного виджета
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+// Глобальные переменные для хранения значений .env файла
+Map<String, String> _envVariables = {};
+
 // Утилита для безопасной загрузки .env файла
 Future<void> loadEnvSafely() async {
   try {
     // Сначала пробуем загрузить .env файл как ассет (работает в релизных сборках)
     String envContent = await rootBundle.loadString('.env');
-    await dotenv.load(string: envContent);
+    _envVariables = _parseEnvString(envContent);
+    await dotenv.load(fileName: ".env"); // Попробуем также загрузить как обычный файл на всякий случай
     _showToast('Загружен .env файл как ассет');
   } catch (e) {
     _showToast('Не удалось загрузить .env файл как ассет: $e');
@@ -41,47 +45,81 @@ Future<void> loadEnvSafely() async {
   }
 }
 
+// Вспомогательная функция для парсинга .env строки в Map
+Map<String, String> _parseEnvString(String envContent) {
+  Map<String, String> envMap = {};
+  
+  List<String> lines = envContent.split('\n');
+  for (String line in lines) {
+    line = line.trim();
+    if (line.isEmpty || line.startsWith('#')) continue;
+    
+    int separatorIndex = line.indexOf('=');
+    if (separatorIndex != -1) {
+      String key = line.substring(0, separatorIndex).trim();
+      String value = line.substring(separatorIndex + 1).trim();
+      
+      // Убираем кавычки, если они есть
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.substring(1, value.length - 1);
+      }
+      
+      envMap[key] = value;
+    }
+  }
+  
+  return envMap;
+}
+
+// Вспомогательная функция для получения значения из .env
+String? _getEnvValue(String key) {
+  // Сначала пробуем получить из flutter_dotenv
+  try {
+    return dotenv.env[key];
+  } catch (e) {
+    // Если не удалось, пробуем получить из нашего парсера
+    return _envVariables[key];
+  }
+}
+
 // Вспомогательная функция для показа Toast сообщений
 void _showToast(String message) {
-  print(message); // Сохраняем вывод в консоль для отладки
+  // Сохраняем вывод в консоль для отладки
+  debugPrint(message);
   // Показываем сообщение в интерфейсе, если контекст доступен
   if (navigatorKey.currentState != null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        navigatorKey.currentState?.overlay?.insert(
-          OverlayEntry(
-            builder: (context) => Positioned(
-              top: 50.0,
-              left: 10.0,
-              right: 10.0,
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  padding: EdgeInsets.all(10.0),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Text(
-                    message,
-                    style: TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
+        final overlayEntry = OverlayEntry(
+          builder: (context) => Positioned(
+            top: 50.0,
+            left: 10.0,
+            right: 10.0,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Text(
+                  message,
+                  style: TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
           ),
         );
         
+        navigatorKey.currentState?.overlay?.insert(overlayEntry);
+        
         // Убираем сообщение через 3 секунды
         Future.delayed(Duration(seconds: 3), () {
           try {
-            // Проверяем, что overlayEntry еще существует и можно его удалить
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (navigatorKey.currentState?.overlay?.entries.isNotEmpty == true) {
-                navigatorKey.currentState?.overlay?.entries.last.remove();
-              }
-            });
+            overlayEntry.remove();
           } catch (e) {
             // Игнорируем ошибки при удалении overlay
           }
@@ -104,8 +142,8 @@ Future<void> main() async {
   String? envSupabaseUrl, envSupabaseKey;
   try {
     // Проверяем, можем ли получить переменные из dotenv
-    envSupabaseUrl = dotenv.env['SUPABASE_URL'];
-    envSupabaseKey = dotenv.env['SUPABASE_KEY'];
+    envSupabaseUrl = _getEnvValue('SUPABASE_URL');
+    envSupabaseKey = _getEnvValue('SUPABASE_KEY');
   } catch (e) {
     // Если возникла ошибка доступа к dotenv (например, в вебе), используем только AppConfig
     _showToast('Ошибка доступа к переменным окружения: $e');
@@ -143,7 +181,7 @@ class TeaApp extends StatelessWidget {
     String appName = AppConfig.appName; // по умолчанию используем AppConfig
     try {
       // Пытаемся получить из dotenv, если доступно
-      String? envAppName = dotenv.env['APP_NAME'];
+      String? envAppName = _getEnvValue('APP_NAME');
       if (envAppName != null && envAppName.isNotEmpty) {
         appName = envAppName;
       }
