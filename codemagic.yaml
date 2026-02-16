@@ -88,12 +88,16 @@ workflows:
           # Запускаем сборку IPA с отключенной подписью
           flutter build ipa --release --no-codesign
           # Выводим список файлов в директории build для проверки
-          ls -la build/
-          ls -la build/ios/
-          ls -la build/ios/ipa/
+          echo "=== Содержимое build/ ==="
+          find build/ -name "*" -type f | head -20
+          echo "=== Содержимое build/ios/ ==="
+          find build/ios/ -name "*" -type f | head -20
     artifacts:
-      - build/ios/ipa/*.ipa
-      - build/ios/ipa/Runner.ipa
+      - build/**/Runner.app/**
+      - build/**/Runner.ipa
+      - build/**/Runner.ipa/**
+      - build/**/Payload/**
+      - build/**/build/**
     publishing:
       email:
         recipients:
@@ -147,13 +151,17 @@ workflows:
           # Запускаем сборку IPA с отключенной подписью
           flutter build ipa --release --no-codesign
           # Выводим список файлов в директории build для проверки
-          ls -la build/
-          ls -la build/ios/
-          ls -la build/ios/ipa/
+          echo "=== Содержимое build/ ==="
+          find build/ -name "*" -type f | head -20
+          echo "=== Содержимое build/ios/ ==="
+          find build/ios/ -name "*" -type f | head -20
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
-      - build/ios/ipa/*.ipa
-      - build/ios/ipa/Runner.ipa
+      - build/**/Runner.app/**
+      - build/**/Runner.ipa
+      - build/**/Runner.ipa/**
+      - build/**/Payload/**
+      - build/**/build/**
     publishing:
       email:
         recipients:
