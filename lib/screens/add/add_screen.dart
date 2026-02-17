@@ -16,6 +16,8 @@ import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:tea/widgets/animated_loader.dart';
+import 'package:tea/screens/details/details_screen.dart';
+import 'package:tea/models/tea.dart';
 
 import 'widgets/image_picker_section.dart';
 import 'widgets/input_block.dart';
@@ -89,8 +91,8 @@ class _AddScreenState extends ConsumerState<AddScreen> {
         description: descriptionHtml,
       );
 
-      // ШАГ 3: Сохранение данных (теперь тоже выбросит Exception при ошибке)
-      await ref.read(teaControllerProvider).createTeaWithResponse(
+      // ШАГ 3: Сохранение данных и получение созданного чая
+      final createdTeaResponse = await ref.read(teaControllerProvider).createTeaWithResponse(
         dto,
         onSuccess: () {
           // Инвалидируем провайдер для страницы 1, чтобы обновить список чаёв
@@ -104,10 +106,32 @@ class _AddScreenState extends ConsumerState<AddScreen> {
 
       if (!mounted) return;
 
-      context.showSuccessSnackBar("Чай успешно добавлен!");
-      
-      // Закрываем экран добавления и возвращаемся к главному экрану
-      Navigator.of(context).pop(true);
+      // Получаем метаданные для создания TeaModel
+      final metadataAsync = ref.read(metadataProvider);
+      if (metadataAsync.hasValue && metadataAsync.value != null) {
+        final metadata = metadataAsync.value!;
+        final createdTea = TeaModel.fromResponse(
+          response: createdTeaResponse,
+          countries: metadata.countries ?? [],
+          types: metadata.types ?? [],
+          appearances: metadata.appearances ?? [],
+          flavors: metadata.flavors ?? [],
+        );
+
+        context.showSuccessSnackBar("Чай успешно добавлен!");
+        
+        // Переходим к экрану подробного просмотра созданного чая
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => TeaDetailScreen(tea: createdTea),
+          ),
+        );
+      } else {
+        context.showSuccessSnackBar("Чай успешно добавлен!");
+        
+        // Если метаданные не доступны, возвращаемся на главный экран
+        Navigator.of(context).pop(true);
+      }
     } catch (e) {
       // Сюда прилетит ЛЮБАЯ ошибка:
       // - Ошибка загрузки фото
