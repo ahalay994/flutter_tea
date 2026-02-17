@@ -118,6 +118,18 @@ class TeaModel {
     required List<AppearanceResponse> appearances,
     required List<FlavorResponse> flavors,
   }) {
+    // Функция для получения названия по ID с fallback к ID в виде текста при отсутствии метаданных
+    String? getNameById(List<dynamic> list, int? id, String Function(dynamic) nameExtractor, String? idText) {
+      if (id == null || idText == null) return null;
+      // Проверяем, есть ли метаданные (список не пуст)
+      if (list.isNotEmpty) {
+        return DataMapper.getFieldById(list, nameExtractor, id);
+      } else {
+        // Если метаданные отсутствуют, возвращаем ID как текст
+        return idText;
+      }
+    }
+
     return TeaModel(
       id: id,
       name: name,
@@ -126,12 +138,13 @@ class TeaModel {
       weight: weight,
       description: description,
       images: images,
-      country: countryId != null ? DataMapper.getFieldById(countries, (c) => c.name, int.tryParse(countryId)) : null,
-      type: typeId != null ? DataMapper.getFieldById(types, (t) => t.name, int.tryParse(typeId)) : null,
-      appearance: appearanceId != null ? DataMapper.getFieldById(appearances, (a) => a.name, int.tryParse(appearanceId)) : null,
+      country: countryId != null ? getNameById(countries, int.tryParse(countryId), (c) => c.name, countryId) : null,
+      type: typeId != null ? getNameById(types, int.tryParse(typeId), (t) => t.name, typeId) : null,
+      appearance: appearanceId != null ? getNameById(appearances, int.tryParse(appearanceId), (a) => a.name, appearanceId) : null,
       flavors: flavorIds.isNotEmpty 
-          ? DataMapper.getFieldsByIds(flavors, (f) => f.name, flavorIds.map((id) => int.tryParse(id)).where((id) => id != null).cast<int>().toList())
-          : [],
+          ? (flavors.isNotEmpty
+              ? DataMapper.getFieldsByIds(flavors, (f) => f.name, flavorIds.map((id) => int.tryParse(id)).where((id) => id != null).cast<int>().toList())
+              : flavorIds), // Если метаданные отсутствуют, возвращаем ID как текст
     );
   }
 
