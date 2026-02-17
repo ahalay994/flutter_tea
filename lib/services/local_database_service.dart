@@ -1114,7 +1114,7 @@ class LocalDatabaseService {
     final allTeas = await getAllTeas();
     
     return allCountries.map((country) {
-      // Фильтруем чаи для подсчета
+      // Фильтруем чаи для подсчета, учитывая фильтры ТИПОВ, ВНЕШНИХ ВИДОВ и ВКУСОВ, но НЕ учитывая фильтр СТРАН
       final filteredTeas = allTeas.where((tea) {
         // Поиск по тексту
         if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -1124,11 +1124,6 @@ class LocalDatabaseService {
               (tea.temperature?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false) ||
               (tea.weight?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false);
           if (!matches) return false;
-        }
-
-        // Фильтрация по странам
-        if (countryIds.isNotEmpty && !countryIds.contains(country.id)) {
-          return false;
         }
 
         // Фильтрация по типам
@@ -1165,7 +1160,7 @@ class LocalDatabaseService {
         'name': country.name,
         'count': filteredTeas.length,
       };
-    }).toList();
+    }).where((result) => result['count'] as int > 0).toList(); // Фильтруем, чтобы возвращать только элементы с count > 0
   }
   
   Future<List<Map<String, dynamic>>> getFilteredTypesWithCount({
@@ -1179,7 +1174,7 @@ class LocalDatabaseService {
     final allTeas = await getAllTeas();
     
     return allTypes.map((type) {
-      // Фильтруем чаи для подсчета
+      // Фильтруем чаи для подсчета, учитывая фильтры СТРАН, ВНЕШНИХ ВИДОВ и ВКУСОВ, но НЕ учитывая фильтр ТИПОВ
       final filteredTeas = allTeas.where((tea) {
         // Поиск по тексту
         if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -1197,11 +1192,6 @@ class LocalDatabaseService {
           if (teaCountryId != null && !countryIds.contains(teaCountryId)) {
             return false;
           }
-        }
-
-        // Фильтрация по типам
-        if (typeIds.isNotEmpty && !typeIds.contains(type.id)) {
-          return false;
         }
 
         // Фильтрация по внешним видам
@@ -1230,7 +1220,7 @@ class LocalDatabaseService {
         'name': type.name,
         'count': filteredTeas.length,
       };
-    }).toList();
+    }).where((result) => result['count'] as int > 0).toList(); // Фильтруем, чтобы возвращать только элементы с count > 0
   }
   
   Future<List<Map<String, dynamic>>> getFilteredAppearancesWithCount({
@@ -1244,7 +1234,7 @@ class LocalDatabaseService {
     final allTeas = await getAllTeas();
     
     return allAppearances.map((appearance) {
-      // Фильтруем чаи для подсчета
+      // Фильтруем чаи для подсчета, учитывая фильтры СТРАН, ТИПОВ и ВКУСОВ, но НЕ учитывая фильтр ВНЕШНИХ ВИДОВ
       final filteredTeas = allTeas.where((tea) {
         // Поиск по тексту
         if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -1272,11 +1262,6 @@ class LocalDatabaseService {
           }
         }
 
-        // Фильтрация по внешним видам
-        if (appearanceIds.isNotEmpty && !appearanceIds.contains(appearance.id)) {
-          return false;
-        }
-
         // Фильтрация по вкусам
         if (flavorIds.isNotEmpty) {
           final teaFlavorIds = tea.flavors.map((f) => int.tryParse(f)).where((id) => id != null).cast<int>().toList();
@@ -1295,7 +1280,7 @@ class LocalDatabaseService {
         'name': appearance.name,
         'count': filteredTeas.length,
       };
-    }).toList();
+    }).where((result) => result['count'] as int > 0).toList(); // Фильтруем, чтобы возвращать только элементы с count > 0
   }
   
   Future<List<Map<String, dynamic>>> getFilteredFlavorsWithCount({
@@ -1309,7 +1294,7 @@ class LocalDatabaseService {
     final allTeas = await getAllTeas();
     
     return allFlavors.map((flavor) {
-      // Фильтруем чаи для подсчета
+      // Фильтруем чаи для подсчета, учитывая фильтры СТРАН, ТИПОВ и ВНЕШНИХ ВИДОВ, но НЕ учитывая фильтр ВКУСОВ
       final filteredTeas = allTeas.where((tea) {
         // Поиск по тексту
         if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -1345,11 +1330,6 @@ class LocalDatabaseService {
           }
         }
 
-        // Фильтрация по вкусам
-        if (flavorIds.isNotEmpty && !flavorIds.contains(flavor.id)) {
-          return false;
-        }
-
         // Проверяем, что это вкус, для которого мы считаем
         return tea.flavors.any((flavorId) => int.tryParse(flavorId) == flavor.id);
       }).toList();
@@ -1359,6 +1339,6 @@ class LocalDatabaseService {
         'name': flavor.name,
         'count': filteredTeas.length,
       };
-    }).toList();
+    }).where((result) => result['count'] as int > 0).toList(); // Фильтруем, чтобы возвращать только элементы с count > 0
   }
 }

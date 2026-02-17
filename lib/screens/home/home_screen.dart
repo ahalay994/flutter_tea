@@ -418,18 +418,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         if (_allTeas.isEmpty && !_isLoadingMore)
                           Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.local_cafe_outlined, size: 64, color: Colors.grey.shade400),
-                                const SizedBox(height: 16),
-                                Text(
-                                  isConnected ? 
-                                    (isFiltered ? "Нет чаёв по фильтрам" : "Список чая пока пуст") : 
-                                    "Нет данных для отображения в оффлайн-режиме",
-                                  style: TextStyle(color: Colors.grey.shade600),
-                                ),
-                              ],
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.local_cafe_outlined, size: 64, color: Colors.grey.shade400),
+                                  const SizedBox(height: 16),
+                                  if (isFiltered)
+                                    Column(
+                                      children: [
+                                        Text(
+                                          "По вашим критериям фильтра ничего не найдено",
+                                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton(
+                                          onPressed: _resetFilters,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          child: const Text("Сбросить фильтры"),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Text(
+                                      isConnected ? 
+                                        "Список чая пока пуст" : 
+                                        "Нет данных для отображения в оффлайн-режиме",
+                                      style: TextStyle(color: Colors.grey.shade600),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                       ],
