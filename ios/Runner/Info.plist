@@ -47,5 +47,11 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSCameraUsageDescription</key>
+		<string>Приложению нужен доступ к камере для съемки фото чая</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Приложению нужен доступ к галерее для выбора фото чая</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Приложению нужен доступ к микрофону для записи видео</string>
 	</dict>
 </plist>
