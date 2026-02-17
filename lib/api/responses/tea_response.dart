@@ -45,7 +45,15 @@ class TeaResponse {
       description: json['description'],
       createdAt: json['createdAt'] as String? ?? '',
       updatedAt: json['updatedAt'] as String? ?? '',
-      flavors: JsonUtils.parseList<int>(json['Flavors'] ?? json['flavors'], (item) => item as int),
+      flavors: JsonUtils.parseList<int>(json['Flavors'] ?? json['flavors'], (item) {
+        if (item is int) {
+          return item;
+        } else if (item is Map<String, dynamic>) {
+          return item['id'] as int;
+        } else {
+          throw Exception('Unexpected flavor item type: $item');
+        }
+      }),
       images: JsonUtils.parseList<ImageModel>(json['Images'] ?? json['images'], (item) => ImageModel.fromJson(item)),
     );
   }

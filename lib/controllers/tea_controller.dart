@@ -701,6 +701,18 @@ class TeaController {
     }
   }
 
+  // Метод для получения оригинального ответа чая с полными данными (включая ID изображений)
+  Future<TeaResponse> getTeaResponse(int id) async {
+    try {
+      // Получаем напрямую с API, чтобы получить полные данные изображений
+      final response = await _teaApi.getTea(id);
+      return response;
+    } catch (e, stack) {
+      AppLogger.error('Ошибка при получении оригинального ответа чая', error: e, stackTrace: stack);
+      rethrow;
+    }
+  }
+
   // Метод для создания чая
   Future<TeaResponse> createTeaWithResponse(CreateTeaDto dto, {required VoidCallback onSuccess}) async {
     if (await _networkService.checkConnection()) {
@@ -709,13 +721,18 @@ class TeaController {
       onSuccess(); // Инвалидируем список
       
       // Возвращаем первый элемент, если список не пустой
-      // Если список пустой, создаем TeaResponse из DTO и сохраненных данных
       if (response.isNotEmpty) {
         return response.first;
       } else {
-        // Если API не вернул созданный объект, просто вызываем успешное завершение
-        // и возвращаем пустой объект, так как реальный объект будет загружен при обновлении списка
-        throw Exception("Чай создан успешно, но данные не получены от сервера. Список будет обновлен.");
+        // Если API не вернул созданный объект, получаем последний созданный чай для обновления UI
+        // Это происходит, когда сервер возвращает статус 204 или пустой ответ после создания
+        final allTeasResponse = await _teaApi.getTeasPaginated(page: 1, perPage: 1);
+        if (allTeasResponse.data.isNotEmpty) {
+          // Возвращаем самый последний чай из списка (предполагаем, что он только что созданный)
+          return allTeasResponse.data.first;
+        } else {
+          throw Exception("Чай создан успешно, но данные не получены от сервера. Список будет обновлен.");
+        }
       }
     } else {
       // Оффлайн режим - не поддерживается
@@ -838,13 +855,17 @@ class TeaController {
           'appearances': <AppearanceResponse>[],
           'flavors': <FlavorResponse>[],
         };
-      }
-    }
-  }
-  
-  // Метод для проверки статуса подключения
-  bool get isConnected => _networkService.isConnected;
-  
+            }
+          }
+        }
+      
+        // Публичный метод для получения метаданных (доступен извне класса)
+        Future<Map<String, dynamic>> getMetadata() async {
+          return await _getMetadata();
+        }
+        
+        // Метод для проверки статуса подключения
+        bool get isConnected => _networkService.isConnected;  
   // Геттер для NetworkService
   NetworkService get networkService => _networkService;
   

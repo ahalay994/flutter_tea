@@ -244,6 +244,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           });
           _loadFirstPage();
         }
+        // Сбрасываем флаг обновления после обработки
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ref.read(refreshTeaListProvider.notifier).reset();
+          }
+        });
       }
     });
     
