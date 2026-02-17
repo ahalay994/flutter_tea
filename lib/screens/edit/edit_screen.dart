@@ -90,11 +90,13 @@ class _EditScreenState extends ConsumerState<EditScreen> {
   void _initializeFormData() async {
     final metadataAsync = ref.read(metadataProvider);
     
-    if (metadataAsync case AsyncValue(hasValue: true, value: final metadata?) when metadata != null) {
+    if (metadataAsync.hasValue && metadataAsync.value != null) {
+      final metadata = metadataAsync.value!;
+      
       // Находим соответствующие значения по названию
       final teaCountry = widget.tea.country;
-      if (teaCountry != null) {
-        _selectedCountry = metadata.countries?.firstWhere(
+      if (teaCountry != null && metadata.countries != null) {
+        _selectedCountry = metadata.countries!.firstWhere(
           (c) => c.name == teaCountry, 
           orElse: () => CountryResponse(
             id: 0, 
@@ -106,8 +108,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       }
       
       final teaType = widget.tea.type;
-      if (teaType != null) {
-        _selectedType = metadata.types?.firstWhere(
+      if (teaType != null && metadata.types != null) {
+        _selectedType = metadata.types!.firstWhere(
           (t) => t.name == teaType, 
           orElse: () => TypeResponse(
             id: 0, 
@@ -119,8 +121,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       }
       
       final teaAppearance = widget.tea.appearance;
-      if (teaAppearance != null) {
-        _selectedAppearance = metadata.appearances?.firstWhere(
+      if (teaAppearance != null && metadata.appearances != null) {
+        _selectedAppearance = metadata.appearances!.firstWhere(
           (a) => a.name == teaAppearance, 
           orElse: () => AppearanceResponse(
             id: 0, 
@@ -226,7 +228,7 @@ class _EditScreenState extends ConsumerState<EditScreen> {
         existingImageResponses.add(ImageResponse(
           id: imageInResponse.id,
           name: imageInResponse.name,
-          status: imageInResponse.status ?? 'finished',
+          status: imageInResponse.status,
           url: imageInResponse.url,
           createdAt: imageInResponse.createdAt,
           updatedAt: imageInResponse.updatedAt,
@@ -270,7 +272,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       // Возвращаемся на предыдущий экран с обновленными данными
       if (Navigator.of(context).canPop()) {
         final metadataAsync = ref.read(metadataProvider);
-        if (metadataAsync case AsyncValue(hasValue: true, value: final metadata?)) {
+        if (metadataAsync.hasValue && metadataAsync.value != null) {
+          final metadata = metadataAsync.value!;
           final updatedTeaModel = TeaModel.fromResponse(
             response: updatedTea,
             countries: metadata.countries ?? [],
@@ -287,7 +290,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       } else {
         // Если нельзя вернуться назад, получаем метаданные и создаем TeaModel из TeaResponse
         final metadataAsync = ref.read(metadataProvider);
-        if (metadataAsync case AsyncValue(hasValue: true, value: final metadata?)) {
+        if (metadataAsync.hasValue && metadataAsync.value != null) {
+          final metadata = metadataAsync.value!;
           final updatedTeaModel = TeaModel.fromResponse(
             response: updatedTea,
             countries: metadata.countries ?? [],
