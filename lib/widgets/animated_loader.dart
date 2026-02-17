@@ -24,3 +24,31 @@ class AnimatedLoader extends StatelessWidget {
     );
   }
 }
+
+// Виджет для полноэкранного лоадера с прозрачным фоном
+class FullScreenLoader extends StatelessWidget {
+  final bool isLoading;
+  final Widget child;
+
+  const FullScreenLoader({
+    super.key,
+    required this.isLoading,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        child,
+        if (isLoading)
+          Container(
+            color: Colors.white.withOpacity(0.8), // Прозрачный белый фон
+            child: const Center(
+              child: AnimatedLoader(size: 100),
+            ),
+          ),
+      ],
+    );
+  }
+}

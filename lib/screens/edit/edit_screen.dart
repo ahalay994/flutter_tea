@@ -23,6 +23,7 @@ import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:tea/utils/html_to_delta_converter.dart';
+import 'package:tea/widgets/animated_loader.dart';
 
 class EditScreen extends ConsumerStatefulWidget {
   final TeaModel tea;
@@ -193,7 +194,10 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       return;
     }
 
-    context.showLoadingDialog();
+    // Показываем полноэкранный лоадер
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       // Загружаем новые изображения (если есть)
@@ -267,8 +271,6 @@ class _EditScreenState extends ConsumerState<EditScreen> {
 
       if (!mounted) return;
 
-      context.hideLoading();
-      
       // Возвращаемся на предыдущий экран с обновленными данными
       if (Navigator.of(context).canPop()) {
         final metadataAsync = ref.read(metadataProvider);
@@ -329,7 +331,6 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       AppLogger.error("Сбой в процессе обновления", error: e);
 
       if (mounted) {
-        context.hideLoading();
         context.showErrorDialog(e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
@@ -347,119 +348,122 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       error: (error, stack) => true, // При ошибке считаем, что подключение есть
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Редактировать чай"),
-        actions: [
-          _isLoading
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+    return FullScreenLoader(
+      isLoading: _isLoading,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Редактировать чай"),
+          actions: [
+            _isLoading
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      ),
                     ),
-                  ),
-                )
-              : isConnected 
-                  ? IconButton(icon: const Icon(Icons.check), onPressed: (isConnected && !_isLoading) ? _handleSave : null)
-                  : const SizedBox(), // Скрываем кнопку при отключенном интернете
-        ],
-      ),
-      body: Column(
-        children: [
-          // Индикатор оффлайн режима
-          if (!isConnected)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8.0),
-              color: Colors.orange.shade100,
-              child: const Row(
-                children: [
-                  Icon(Icons.warning, color: Colors.orange, size: 16),
-                  SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Оффлайн режим - редактирование недоступно',
-                      style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          // Основной контент
-          Expanded(
-            child: metadataAsync.when(
-              data: (metadata) {
-                if (metadata == null) {
-                  return const Center(child: Text('Ошибка загрузки данных'));
-                }
-                
-                // Проверяем, инициализированы ли выбранные значения
-                bool isInitialized = _selectedCountry != null || 
-                                    _selectedType != null || 
-                                    _selectedAppearance != null || 
-                                    _selectedFlavors.isNotEmpty;
-                
-                // Если значения еще не инициализированы, но должны быть, и метаданные загружены,
-                // запускаем инициализацию и показываем загрузку
-                if (!isInitialized && 
-                    (widget.tea.country != null || 
-                     widget.tea.type != null || 
-                     widget.tea.appearance != null || 
-                     widget.tea.flavors.isNotEmpty)) {
-                     
-                  // Запускаем инициализацию если она еще не была выполнена
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) {
-                      _initializeFormData();
-                    }
-                  });
-                  
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Загрузка данных чая...'),
-                      ],
-                    ),
-                  );
-                }
-                
-                return AbsorbPointer(
-                  // Отключаем все поля ввода при оффлайн режиме
-                  absorbing: !isConnected,
-                  child: Opacity(
-                    // Делаем поля полупрозрачными в оффлайн режиме
-                    opacity: isConnected ? 1.0 : 0.6,
-                    child: _buildFormContent(metadata),
-                  ),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  )
+                : isConnected 
+                    ? IconButton(icon: const Icon(Icons.check), onPressed: (isConnected && !_isLoading) ? _handleSave : null)
+                    : const SizedBox(), // Скрываем кнопку при отключенном интернете
+          ],
+        ),
+        body: Column(
+          children: [
+            // Индикатор оффлайн режима
+            if (!isConnected)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8.0),
+                color: Colors.orange.shade100,
+                child: const Row(
                   children: [
-                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('Ошибка загрузки данных: ${error.toString()}'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref.invalidate(metadataProvider);
-                      },
-                      child: const Text('Повторить'),
+                    Icon(Icons.warning, color: Colors.orange, size: 16),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Оффлайн режим - редактирование недоступно',
+                        style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ],
                 ),
               ),
+            // Основной контент
+            Expanded(
+              child: metadataAsync.when(
+                data: (metadata) {
+                  if (metadata == null) {
+                    return const Center(child: Text('Ошибка загрузки данных'));
+                  }
+                  
+                  // Проверяем, инициализированы ли выбранные значения
+                  bool isInitialized = _selectedCountry != null || 
+                                      _selectedType != null || 
+                                      _selectedAppearance != null || 
+                                      _selectedFlavors.isNotEmpty;
+                  
+                  // Если значения еще не инициализированы, но должны быть, и метаданные загружены,
+                  // запускаем инициализацию и показываем загрузку
+                  if (!isInitialized && 
+                      (widget.tea.country != null || 
+                       widget.tea.type != null || 
+                       widget.tea.appearance != null || 
+                       widget.tea.flavors.isNotEmpty)) {
+                       
+                    // Запускаем инициализацию если она еще не была выполнена
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        _initializeFormData();
+                      }
+                    });
+                    
+                    return const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('Загрузка данных чая...'),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return AbsorbPointer(
+                    // Отключаем все поля ввода при оффлайн режиме
+                    absorbing: !isConnected,
+                    child: Opacity(
+                      // Делаем поля полупрозрачными в оффлайн режиме
+                      opacity: isConnected ? 1.0 : 0.6,
+                      child: _buildFormContent(metadata),
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Ошибка загрузки данных: ${error.toString()}'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.invalidate(metadataProvider);
+                        },
+                        child: const Text('Повторить'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
