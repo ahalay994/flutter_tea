@@ -11,6 +11,7 @@ import 'package:tea/api/responses/flavor_response.dart';
 import 'package:tea/api/responses/image_response.dart';
 import 'package:tea/api/responses/type_response.dart';
 import 'package:tea/controllers/tea_controller.dart';
+import 'package:tea/providers/connection_status_provider.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/models/image.dart';
 import 'package:tea/providers/metadata_provider.dart';
@@ -336,7 +337,12 @@ class _EditScreenState extends ConsumerState<EditScreen> {
   @override
   Widget build(BuildContext context) {
     final metadataAsync = ref.watch(metadataProvider);
-    final isConnected = ref.watch(teaControllerProvider).isConnected;
+    final connectionStatus = ref.watch(connectionStatusProvider);
+    final isConnected = connectionStatus.when(
+      data: (isConnected) => isConnected,
+      loading: () => true, // По умолчанию считаем, что подключение есть
+      error: (error, stack) => true, // При ошибке считаем, что подключение есть
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -353,7 +359,9 @@ class _EditScreenState extends ConsumerState<EditScreen> {
                     ),
                   ),
                 )
-              : IconButton(icon: const Icon(Icons.check), onPressed: (isConnected && !_isLoading) ? _handleSave : null),
+              : isConnected 
+                  ? IconButton(icon: const Icon(Icons.check), onPressed: (isConnected && !_isLoading) ? _handleSave : null)
+                  : const SizedBox(), // Скрываем кнопку при отключенном интернете
         ],
       ),
       body: Column(

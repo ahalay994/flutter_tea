@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tea/controllers/tea_controller.dart';
+import 'package:tea/providers/connection_status_provider.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/screens/edit/edit_screen.dart';
 import 'package:tea/utils/ui_helpers.dart';
@@ -41,7 +42,48 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isConnected = ref.watch(teaControllerProvider).isConnected;
+    // Сначала дожидаемся результата первой проверки подключения
+    final initialConnectionStatus = ref.watch(initialConnectionStatusProvider);
+    
+    return initialConnectionStatus.when(
+      data: (initialConnected) {
+        // После получения результата первой проверки подключения
+        // продолжаем с основной логикой TeaDetailScreen
+        return _buildMainContent(context, initialConnected);
+      },
+      loading: () {
+        // Показываем индикатор загрузки до завершения первой проверки подключения
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Загрузка...'),
+          ),
+          body: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Проверка подключения...'),
+              ],
+            ),
+          ),
+        );
+      },
+      error: (error, stack) {
+        // В случае ошибки проверки подключения, используем false как значение
+        return _buildMainContent(context, false);
+      },
+    );
+  }
+  
+  // Отдельный метод для основного содержимого экрана
+  Widget _buildMainContent(BuildContext context, bool initialConnected) {
+    final connectionStatus = ref.watch(connectionStatusProvider);
+    final isConnected = connectionStatus.when(
+      data: (isConnected) => isConnected,
+      loading: () => initialConnected, // Используем результат первой проверки
+      error: (error, stack) => initialConnected, // Используем результат первой проверки
+    );
 
     return Scaffold(
       body: NotificationListener<ScrollNotification>(
@@ -186,7 +228,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                             SizedBox(width: 8),
                             Flexible(
                               child: Text(
-                                'Оффлайн режим - функции редактирования и удаления недоступны',
+                                'Оффлайн режим - редактирование и удаление недоступны',
                                 style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
                               ),
                             ),

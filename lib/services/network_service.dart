@@ -9,19 +9,23 @@ class NetworkService {
     initialize();
   }
 
-  final StreamController<bool> _connectionStatusController = StreamController<bool>.broadcast();
-
-  Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
-
-  bool _isConnected = false; // Начальное значение - отключен
-  bool get isConnected => _isConnected;
-
-  Timer? _timer;
-
-  void initialize() {
-    // Начальная проверка подключения (асинхронно, чтобы не блокировать инициализацию)
-    Future.microtask(_updateConnectionStatus);
-
+    final StreamController<bool> _connectionStatusController = StreamController<bool>.broadcast();
+  
+    Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
+  
+    bool _isConnected = false; // Начальное значение - отключен
+    bool get isConnected => _isConnected;
+  
+    // Future для отслеживания завершения первой проверки подключения
+    final Completer<bool> _firstCheckCompleter = Completer<bool>();
+    bool _firstCheckCompleted = false;
+    bool get firstCheckCompleted => _firstCheckCompleted;
+  
+    Timer? _timer;
+  
+    void initialize() {
+      // Начальная проверка подключения (асинхронно, чтобы не блокировать инициализацию)
+      Future.microtask(_updateConnectionStatus);
     // Периодическая проверка подключения каждую минуту
     _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
       _updateConnectionStatus();
@@ -67,6 +71,12 @@ class NetworkService {
 
       if (wasConnected) {
         _connectionStatusController.add(_isConnected);
+      }
+    } finally {
+      // Отмечаем, что первая проверка завершена, если она еще не была завершена
+      if (!_firstCheckCompleted) {
+        _firstCheckCompleted = true;
+        _firstCheckCompleter.complete(_isConnected);
       }
     }
   }
@@ -133,6 +143,14 @@ class NetworkService {
     }
 
     return await checkApiAvailability();
+  }
+
+  // Метод для ожидания завершения первой проверки подключения
+  Future<bool> waitForFirstCheck() async {
+    if (_firstCheckCompleted) {
+      return _isConnected;
+    }
+    return _firstCheckCompleter.future;
   }
 
   void dispose() {

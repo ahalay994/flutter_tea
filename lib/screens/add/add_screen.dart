@@ -10,6 +10,7 @@ import 'package:tea/api/responses/flavor_response.dart';
 import 'package:tea/api/responses/image_response.dart';
 import 'package:tea/api/responses/type_response.dart';
 import 'package:tea/controllers/tea_controller.dart';
+import 'package:tea/providers/connection_status_provider.dart';
 import 'package:tea/providers/metadata_provider.dart';
 import 'package:tea/screens/add/widgets/rich_editor.dart';
 import 'package:tea/utils/app_logger.dart';
@@ -124,8 +125,12 @@ class _AddScreenState extends ConsumerState<AddScreen> {
   @override
   Widget build(BuildContext context) {
     final metadataAsync = ref.watch(metadataProvider);
-    final controller = ref.watch(teaControllerProvider);
-    final isConnected = controller.isConnected;
+    final connectionStatus = ref.watch(connectionStatusProvider);
+    final isConnected = connectionStatus.when(
+      data: (isConnected) => isConnected,
+      loading: () => true, // По умолчанию считаем, что подключение есть
+      error: (error, stack) => true, // При ошибке считаем, что подключение есть
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -142,10 +147,12 @@ class _AddScreenState extends ConsumerState<AddScreen> {
                     ),
                   ),
                 )
-              : IconButton(
-                  icon: const Icon(Icons.check),
-                  onPressed: _isLoading || !isConnected ? null : _handleSave,
-                ),
+              : isConnected
+                  ? IconButton(
+                      icon: const Icon(Icons.check),
+                      onPressed: _isLoading ? null : _handleSave,
+                    )
+                  : const SizedBox(), // Скрываем кнопку при отсутствии подключения
         ],
       ),
       body: metadataAsync.when(
@@ -181,9 +188,11 @@ class _AddScreenState extends ConsumerState<AddScreen> {
                   children: [
                     Icon(Icons.warning, color: Colors.orange, size: 16),
                     SizedBox(width: 8),
-                    Text(
-                      'Оффлайн режим - добавление недоступно',
-                      style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                    Flexible(
+                      child: Text(
+                        'Оффлайн режим - добавление недоступно',
+                        style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ],
                 ),

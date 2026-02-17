@@ -43,6 +43,12 @@ class PaginationResult<T> {
 
 final teaControllerProvider = Provider((ref) => TeaController());
 
+// Провайдер для ожидания завершения первой проверки подключения
+final initialConnectionStatusProvider = FutureProvider<bool>((ref) async {
+  final controller = ref.watch(teaControllerProvider);
+  return controller.networkService.waitForFirstCheck();
+});
+
 final connectionStatusProvider = StreamProvider<bool>((ref) {
   final controller = ref.watch(teaControllerProvider);
   return controller.connectionStatusStream;

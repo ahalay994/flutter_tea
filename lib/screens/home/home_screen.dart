@@ -8,6 +8,7 @@ import 'package:tea/utils/ui_helpers.dart';
 import 'package:tea/utils/app_config.dart';
 import 'package:tea/widgets/animated_loader.dart';
 import 'package:tea/utils/app_logger.dart';
+import 'package:tea/providers/connection_status_provider.dart';
 
 import 'widgets/tea_card.dart';
 import 'widgets/tea_facet_filter_drawer.dart';
@@ -217,6 +218,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Сначала дожидаемся результата первой проверки подключения
+    final initialConnectionStatus = ref.watch(initialConnectionStatusProvider);
+    
+    return initialConnectionStatus.when(
+      data: (initialConnected) {
+        // После получения результата первой проверки подключения
+        // продолжаем с основной логикой HomeScreen
+        return _buildMainContent(context);
+      },
+      loading: () {
+        // Показываем индикатор загрузки до завершения первой проверки подключения
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(_getAppName()),
+          ),
+          body: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Проверка подключения...'),
+              ],
+            ),
+          ),
+        );
+      },
+      error: (error, stack) {
+        // В случае ошибки проверки подключения, считаем, что соединения нет
+        return _buildMainContent(context);
+      },
+    );
+  }
+  
+  // Отдельный метод для основного содержимого экрана
+  Widget _buildMainContent(BuildContext context) {
     // Отслеживаем изменения параметров фильтрации и перезагружаем данные при их изменении
     ref.listen(filterParamsProvider, (previous, next) {
       if (previous != next) {
@@ -267,8 +304,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final connectionStatus = ref.watch(connectionStatusProvider);
     final isConnected = connectionStatus.when(
       data: (isConnected) => isConnected,
-      loading: () => true, // По умолчанию считаем, что подключение есть
-      error: (error, stack) => true, // При ошибке считаем, что подключение есть
+      loading: () => false, // Если поток еще не готов, используем предыдущее значение
+      error: (error, stack) => false, // При ошибке используем предыдущее значение
     );
     return Scaffold(
       appBar: AppBar(
@@ -283,13 +320,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Индикатор статуса подключения
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: connectionStatus.when(
-              data: (isConnected) => isConnected 
-                  ? Icon(Icons.signal_cellular_alt, color: Colors.green)
-                  : Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.red),
-              loading: () => Icon(Icons.signal_cellular_alt, color: Colors.orange),
-              error: (error, stack) => Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.red),
-            ),
+            child: isConnected 
+                ? Icon(Icons.signal_cellular_alt, color: Colors.green)
+                : Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.red),
           ),
         ],
       ),
@@ -297,7 +330,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: Column(
         children: [
           // Индикатор оффлайн режима - над шапкой списка
-          if (connectionStatus.asData?.value == false)
+          if (!isConnected)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(8.0),
