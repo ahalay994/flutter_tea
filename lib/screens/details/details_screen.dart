@@ -35,6 +35,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Инициализируем текущий чай данными из widget
     _currentTea = widget.tea;
   }
 
@@ -76,34 +77,35 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           ],
                         ),
                       ),
-                                        if (isConnected) // Показываем кнопку удаления только при наличии интернета
-                                        const PopupMenuItem(
-                                          value: 'delete',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.delete, size: 20, color: Colors.red),
-                                              SizedBox(width: 8),
-                                              Text('Удалить', style: TextStyle(color: Colors.red)),
-                                            ],
-                                          ),
-                                        ),                    ],
+                      if (isConnected) // Показываем кнопку удаления только при наличии интернета
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 20, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Удалить', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                    ],
                     onSelected: (value) async {
                       if (value == 'delete') {
                         _showDeleteConfirmationDialog(context);
                       } else if (value == 'edit') {
-                        // Переход к экрану редактирования
-                        Navigator.of(context).push(
+                        // Навигация к экрану редактирования и получение обновленного чая
+                        final updatedTea = await Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => EditScreen(tea: _currentTea),
                           ),
-                        ).then((result) {
-                          // Проверяем, было ли что-то изменено
-                          if (result == true) {
-                            // Если была успешная операция редактирования, 
-                            // вызываем обновление данных
-                            ref.read(refreshTeaListProvider.notifier).triggerRefresh();
-                          }
-                        });
+                        );
+                        
+                        // Если получен обновленный чай, обновляем локальное состояние
+                        if (updatedTea != null) {
+                          setState(() {
+                            _currentTea = updatedTea;
+                          });
+                        }
                       }
                     },
                   ),
@@ -204,9 +206,11 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           ),
                         ),
                         if (_currentTea.weight != null && _currentTea.weight!.isNotEmpty)
-                          Text(
-                            "${_currentTea.weight}",
-                            style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
+                          Container(
+                            child: Text(
+                              "${_currentTea.weight}",
+                              style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
+                            ),
                           ),
                       ],
                     ),
@@ -216,6 +220,8 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     Wrap(
                       spacing: 8,
                       children: [
+                        if (_currentTea.country != null)
+                          InfoChip(label: _currentTea.country!, backgroundColor: Colors.green[50]),
                         if (_currentTea.type != null)
                           InfoChip(label: _currentTea.type!, backgroundColor: Colors.green[50]),
                       ],
@@ -327,12 +333,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                 
                 success = await controller.deleteTea(
                   _currentTea.id,
-                  onSuccess: () {
-                    // Инвалидируем провайдер для страницы 1, чтобы обновить список чаёв
-                    ref.invalidate(teaListProvider(1));
-                    // Устанавливаем флаг обновления
-                    ref.read(refreshTeaListProvider.notifier).triggerRefresh();
-                  }, // Обновляем список
+                  onSuccess: () => ref.read(refreshTeaListProvider.notifier).triggerRefresh(), // Обновляем список через флаг
                 );
                 
                 if (!success) {
@@ -355,9 +356,6 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                         SnackBar(content: Text("Чай \"${_currentTea.name}\" успешно удалён"), backgroundColor: Colors.green),
                       );
                       
-                      // Обновляем список чаёв на главном экране
-                      // Инвалидируем провайдер, чтобы данные обновились при возврате на главный экран
-                      ref.invalidate(teaListProvider(1));
                       // Возвращаемся на главный экран при успешном удалении
                       Navigator.of(this.context).pop(); // Закрываем экран деталей
                     } else {

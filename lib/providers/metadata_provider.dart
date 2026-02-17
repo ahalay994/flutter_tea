@@ -19,7 +19,7 @@ class TeaMetadata {
 final metadataProvider = FutureProvider<TeaMetadata>((ref) async {
   final controller = ref.read(teaControllerProvider);
   try {
-    final metadata = await controller._getMetadata();
+    final metadata = await controller.getMetadata();
     return TeaMetadata(
       countries: metadata['countries'] as List<CountryResponse>,
       types: metadata['types'] as List<TypeResponse>,
