@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:html/parser.dart' as html_parser;
 import 'package:image_picker/image_picker.dart';
 import 'package:tea/api/dto/create_tea_dto.dart';
 import 'package:tea/api/image_api.dart';
@@ -11,7 +10,6 @@ import 'package:tea/api/responses/flavor_response.dart';
 import 'package:tea/api/responses/image_response.dart';
 import 'package:tea/api/responses/type_response.dart';
 import 'package:tea/controllers/tea_controller.dart';
-import 'package:tea/providers/connection_status_provider.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/models/image.dart';
 import 'package:tea/providers/metadata_provider.dart';
@@ -24,6 +22,7 @@ import 'package:tea/screens/edit/widgets/editable_image_picker_section.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
+import 'package:tea/utils/html_to_delta_converter.dart';
 
 class EditScreen extends ConsumerStatefulWidget {
   final TeaModel tea;
@@ -47,8 +46,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
   List<FlavorResponse> _selectedFlavors = [];
   final _temperatureController = TextEditingController();
   final _weightController = TextEditingController();
-  late QuillController _brewingGuide;
-  late QuillController _description;
+  late quill.QuillController _brewingGuide;
+  late quill.QuillController _description;
 
   bool _isLoading = false;
 
@@ -56,9 +55,9 @@ class _EditScreenState extends ConsumerState<EditScreen> {
   void initState() {
     super.initState();
     
-    // Инициализируем контроллеры с пустыми документами
-    _brewingGuide = QuillController.basic();
-    _description = QuillController.basic();
+    // Инициализируем контроллеры
+    _brewingGuide = quill.QuillController.basic();
+    _description = quill.QuillController.basic();
     
     // Инициализируем поля данными из существующего чая
     _nameController.text = widget.tea.name;
@@ -91,38 +90,41 @@ class _EditScreenState extends ConsumerState<EditScreen> {
   void _initializeFormData() async {
     final metadataAsync = ref.read(metadataProvider);
     
-    if (metadataAsync case AsyncValue(hasValue: true, value: final metadata?)) {
+    if (metadataAsync case AsyncValue(hasValue: true, value: final metadata?) when metadata != null) {
       // Находим соответствующие значения по названию
-      if (widget.tea.country != null) {
-        _selectedCountry = (metadata.countries ?? []).firstWhere(
-          (c) => c.name == widget.tea.country, 
+      final teaCountry = widget.tea.country;
+      if (teaCountry != null) {
+        _selectedCountry = metadata.countries?.firstWhere(
+          (c) => c.name == teaCountry, 
           orElse: () => CountryResponse(
             id: 0, 
-            name: widget.tea.country!, 
+            name: teaCountry, 
             createdAt: '', 
             updatedAt: ''
           ),
         );
       }
       
-      if (widget.tea.type != null) {
-        _selectedType = (metadata.types ?? []).firstWhere(
-          (t) => t.name == widget.tea.type, 
+      final teaType = widget.tea.type;
+      if (teaType != null) {
+        _selectedType = metadata.types?.firstWhere(
+          (t) => t.name == teaType, 
           orElse: () => TypeResponse(
             id: 0, 
-            name: widget.tea.type!, 
+            name: teaType, 
             createdAt: '', 
             updatedAt: ''
           ),
         );
       }
       
-      if (widget.tea.appearance != null) {
-        _selectedAppearance = (metadata.appearances ?? []).firstWhere(
-          (a) => a.name == widget.tea.appearance, 
+      final teaAppearance = widget.tea.appearance;
+      if (teaAppearance != null) {
+        _selectedAppearance = metadata.appearances?.firstWhere(
+          (a) => a.name == teaAppearance, 
           orElse: () => AppearanceResponse(
             id: 0, 
-            name: widget.tea.appearance!, 
+            name: teaAppearance, 
             createdAt: '', 
             updatedAt: ''
           ),
@@ -131,43 +133,43 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       
       // Находим вкусы
       final flavors = <FlavorResponse>[];
-      for (final flavorName in widget.tea.flavors) {
-        final flavor = (metadata.flavors ?? []).firstWhere(
-          (f) => f.name == flavorName, 
-          orElse: () => FlavorResponse(
-            id: 0, 
-            name: flavorName, 
-            createdAt: '', 
-            updatedAt: ''
-          ),
-        );
-        flavors.add(flavor);
+      if (metadata.flavors != null) {
+        for (final flavorName in widget.tea.flavors) {
+          final flavor = metadata.flavors!.firstWhere(
+            (f) => f.name == flavorName, 
+            orElse: () => FlavorResponse(
+              id: 0, 
+              name: flavorName, 
+              createdAt: '', 
+              updatedAt: ''
+            ),
+          );
+          flavors.add(flavor);
+        }
       }
       _selectedFlavors = flavors;
       
-      // Преобразуем HTML в plain текст для редакторов
+      // Устанавливаем текст в контроллеры
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (widget.tea.brewingGuide != null) {
-          try {
-            // Удаляем HTML теги и получаем plain текст
-            final document = html_parser.parse(widget.tea.brewingGuide!);
-            final plainText = document.body?.text ?? widget.tea.brewingGuide!;
-            _brewingGuide.document = Document()..insert(0, plainText);
-          } catch (e) {
-            // В случае ошибки просто вставляем оригинальный текст
-            _brewingGuide.document = Document()..insert(0, widget.tea.brewingGuide!);
+        if (widget.tea.brewingGuide != null && widget.tea.brewingGuide!.isNotEmpty) {
+          // Проверяем, содержит ли текст HTML-теги
+          if (HtmlToDeltaConverter.isHtmlContent(widget.tea.brewingGuide!)) {
+            // Если это HTML, преобразуем его в Delta формат
+            _brewingGuide.document = HtmlToDeltaConverter.htmlToDelta(widget.tea.brewingGuide!);
+          } else {
+            // Если это обычный текст, загружаем как обычно
+            _brewingGuide.document = quill.Document()..insert(0, widget.tea.brewingGuide!);
           }
         }
         
-        if (widget.tea.description != null) {
-          try {
-            // Удаляем HTML теги и получаем plain текст
-            final document = html_parser.parse(widget.tea.description!);
-            final plainText = document.body?.text ?? widget.tea.description!;
-            _description.document = Document()..insert(0, plainText);
-          } catch (e) {
-            // В случае ошибки просто вставляем оригинальный текст
-            _description.document = Document()..insert(0, widget.tea.description!);
+        if (widget.tea.description != null && widget.tea.description!.isNotEmpty) {
+          // Проверяем, содержит ли текст HTML-теги
+          if (HtmlToDeltaConverter.isHtmlContent(widget.tea.description!)) {
+            // Если это HTML, преобразуем его в Delta формат
+            _description.document = HtmlToDeltaConverter.htmlToDelta(widget.tea.description!);
+          } else {
+            // Если это обычный текст, загружаем как обычно
+            _description.document = quill.Document()..insert(0, widget.tea.description!);
           }
         }
       });
@@ -198,9 +200,6 @@ class _EditScreenState extends ConsumerState<EditScreen> {
         uploadedImages = await ref.read(imageApiProvider).uploadMultipleImages(_newImages);
       }
       
-      // Получаем текущий чай с полной информацией об изображениях
-      final currentTea = await ref.read(teaControllerProvider).getTea(widget.tea.id);
-      
       // Получаем оригинальный ответ с полными данными изображений (включая ID)
       final currentTeaResponse = await ref.read(teaControllerProvider).getTeaResponse(widget.tea.id);
       
@@ -226,7 +225,7 @@ class _EditScreenState extends ConsumerState<EditScreen> {
         // Преобразуем найденное изображение в ImageResponse, сохранив ID
         existingImageResponses.add(ImageResponse(
           id: imageInResponse.id,
-          name: imageInResponse.name ?? url.split('/').last,
+          name: imageInResponse.name,
           status: imageInResponse.status ?? 'finished',
           url: imageInResponse.url,
           createdAt: imageInResponse.createdAt,
@@ -240,8 +239,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       final brewingDelta = _brewingGuide.document.toDelta().toJson();
       final descriptionDelta = _description.document.toDelta().toJson();
 
-      final brewingHtml = QuillDeltaToHtmlConverter(List<Map<String, dynamic>>.from(brewingDelta)).convert();
-      final descriptionHtml = QuillDeltaToHtmlConverter(List<Map<String, dynamic>>.from(descriptionDelta)).convert();
+      final brewingHtml = QuillDeltaToHtmlConverter(brewingDelta).convert();
+      final descriptionHtml = QuillDeltaToHtmlConverter(descriptionDelta).convert();
 
       // Подготовка DTO для обновления
       final dto = CreateTeaDto(

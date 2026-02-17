@@ -45,11 +45,8 @@ class TeaService {
       final List<TypeResponse> types = results[3] as List<TypeResponse>;
       final List<TeaResponse> teaResponses = results[4] as List<TeaResponse>;
 
-      // СОХРАНЯЕМ В СТОР для использования в AddScreen
-      ref
-          .read(metadataProvider.notifier)
-          .update(TeaMetadata(appearances: appearances, countries: countries, flavors: flavors, types: types));
-
+            // Данные метаданных обновляются через инвалидацию провайдера
+            // ref.invalidate(metadataProvider); // Вызывается при необходимости обновления
       AppLogger.debug('Метаданные сохранены в провайдер');
 
       // Мапим каждый TeaResponse в готовую TeaModel

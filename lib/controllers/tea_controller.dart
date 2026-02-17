@@ -18,7 +18,6 @@ import 'package:tea/api/type_api.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/services/local_database_service.dart';
 import 'package:tea/services/network_service.dart';
-import 'package:tea/services/image_cache_service.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/filter_type.dart';
 
@@ -277,8 +276,8 @@ class TeaController {
         }
       }
       
-      // После успешной синхронизации кешируем все изображения
-      await _cacheAllImages();
+      // Ручное кэширование отключено - используется автоматическое кэширование через CachedNetworkImage
+      // await _cacheAllImages();
       AppLogger.debug('Фоновая синхронизация завершена');
     } catch (e) {
       AppLogger.error('Ошибка фоновой синхронизации', error: e);
@@ -888,25 +887,7 @@ class TeaController {
   }
   
   // Метод для кеширования всех изображений
-  Future<void> _cacheAllImages() async {
-    try {
-      final imageUrls = await _localDatabase.getUniqueImageUrls();
-      AppLogger.debug('Начинаем кеширование ${imageUrls.length} уникальных изображений');
-      
-      // Кешируем изображения по одному, чтобы не перегружать систему
-      for (final imageUrl in imageUrls) {
-        try {
-          // Используем кеш-менеджер для скачивания изображения
-          await CustomCacheManager.instance.getSingleFile(imageUrl);
-          AppLogger.debug('Изображение закешировано: $imageUrl');
-        } catch (e) {
-          AppLogger.error('Ошибка при кешировании изображения: $imageUrl', error: e);
-        }
-      }
-    } catch (e) {
-      AppLogger.error('Ошибка при получении списка изображений для кеширования', error: e);
-    }
-  }
+
   
   // Метод для получения фасетов (количество чаёв по каждому фильтру)
   Future<FacetResponse> getFacets(Map<String, dynamic> filterParams) async {

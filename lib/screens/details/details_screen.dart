@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tea/controllers/tea_controller.dart';
-import 'package:tea/providers/connection_status_provider.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/screens/edit/edit_screen.dart';
 import 'package:tea/utils/ui_helpers.dart';

@@ -1,11 +1,17 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+
 import 'package:flutter/services.dart' show rootBundle;
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'package:flutter_quill/flutter_quill.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'screens/home/home_screen.dart';
@@ -83,52 +89,6 @@ String? _getEnvValue(String key) {
   }
 }
 
-// Вспомогательная функция для показа Toast сообщений
-void _showToast(String message) {
-  // Сохраняем вывод в консоль для отладки
-          // debugPrint(message);  // Показываем сообщение в интерфейсе, если контекст доступен
-  if (navigatorKey.currentState != null) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        final overlayEntry = OverlayEntry(
-          builder: (context) => Positioned(
-            top: 50.0,
-            left: 10.0,
-            right: 10.0,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                padding: EdgeInsets.all(10.0),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: Text(
-                  message,
-                  style: TextStyle(color: Colors.white),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ),
-        );
-        
-        navigatorKey.currentState?.overlay?.insert(overlayEntry);
-        
-        // Убираем сообщение через 3 секунды
-        Future.delayed(Duration(seconds: 3), () {
-          try {
-            overlayEntry.remove();
-          } catch (e) {
-            // Игнорируем ошибки при удалении overlay
-          }
-        });
-      } catch (e) {
-        // Игнорируем ошибки при показе сообщения
-      }
-    });
-  }
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -196,7 +156,7 @@ class TeaApp extends StatelessWidget {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
-        FlutterQuillLocalizations.delegate, // Вот этот делегат обязателен для Quill
+        FlutterQuillLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ru'), Locale('en')],
       theme: ThemeData(

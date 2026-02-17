@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 class RichEditor extends StatelessWidget {
@@ -19,29 +20,52 @@ class RichEditor extends StatelessWidget {
         children: [
           Container(
             height: 40,
-            child: quill.QuillToolbar(
-              controller: controller,
-              configurations: quill.QuillToolbarConfigurations(
-                showBoldButton: true,
-                showItalicButton: true,
-                showUnderlineButton: true,
-                showListButton: true,
-                showHeaderButton: true,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.format_bold),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.bold);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_italic),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.italic);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_underline),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.underline);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_list_bulleted),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.ul);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_list_numbered),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.ol);
+                    },
+                  ),
+
+
+                ],
               ),
             ),
           ),
           const Divider(height: 1),
-          Container(
-            height: 100,
+          Expanded(
             child: quill.QuillEditor(
               controller: controller,
               scrollController: ScrollController(),
-              scrollable: true,
               focusNode: FocusNode(),
-              autoFocus: false,
-              readOnly: false,
-              placeholder: 'Введите текст...',
-              padding: EdgeInsets.zero,
             ),
           ),
         ],

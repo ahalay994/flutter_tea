@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tea/api/dto/create_tea_dto.dart';
@@ -10,12 +10,12 @@ import 'package:tea/api/responses/flavor_response.dart';
 import 'package:tea/api/responses/image_response.dart';
 import 'package:tea/api/responses/type_response.dart';
 import 'package:tea/controllers/tea_controller.dart';
-import 'package:tea/providers/connection_status_provider.dart';
 import 'package:tea/providers/metadata_provider.dart';
 import 'package:tea/screens/add/widgets/rich_editor.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
+import 'package:tea/utils/html_to_delta_converter.dart';
 
 import 'widgets/image_picker_section.dart';
 import 'widgets/input_block.dart';
@@ -38,8 +38,8 @@ class _AddScreenState extends ConsumerState<AddScreen> {
   List<FlavorResponse> _selectedFlavors = [];
   final _temperatureController = TextEditingController();
   final _weightController = TextEditingController();
-  final QuillController _brewingGuide = QuillController.basic();
-  final QuillController _description = QuillController.basic();
+  final _brewingGuide = quill.QuillController.basic();
+  final _description = quill.QuillController.basic();
 
   bool _isLoading = false;
 
@@ -69,8 +69,8 @@ class _AddScreenState extends ConsumerState<AddScreen> {
       final brewingDelta = _brewingGuide.document.toDelta().toJson();
       final descriptionDelta = _description.document.toDelta().toJson();
 
-      final brewingHtml = QuillDeltaToHtmlConverter(List<Map<String, dynamic>>.from(brewingDelta)).convert();
-      final descriptionHtml = QuillDeltaToHtmlConverter(List<Map<String, dynamic>>.from(descriptionDelta)).convert();
+      final brewingHtml = QuillDeltaToHtmlConverter(brewingDelta).convert();
+      final descriptionHtml = QuillDeltaToHtmlConverter(descriptionDelta).convert();
 
       // ШАГ 2: Подготовка DTO
       final dto = CreateTeaDto(

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 class RichEditor extends StatelessWidget {
-  final QuillController controller;
+  final quill.QuillController controller;
   final String placeholder;
 
   const RichEditor({super.key, required this.controller, this.placeholder = 'Опишите ваш чай...'});
@@ -10,34 +11,61 @@ class RichEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 150,
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: [
-          // Панель инструментов (Toolbar)
-          QuillSimpleToolbar(
-            controller: controller,
-            config: const QuillSimpleToolbarConfig(
-              showFontSize: false, // Упростим для начала
-              showFontFamily: false,
-              multiRowsDisplay: false,
+          Container(
+            height: 40,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.format_bold),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.bold);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_italic),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.italic);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_underline),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.underline);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_list_bulleted),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.ul);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.format_list_numbered),
+                    onPressed: () {
+                      controller.formatSelection(quill.Attribute.ol);
+                    },
+                  ),
+
+
+                ],
+              ),
             ),
           ),
           const Divider(height: 1),
-          // Поле ввода (Editor)
-          Container(
-            padding: const EdgeInsets.all(12),
-            constraints: const BoxConstraints(minHeight: 150, maxHeight: 300),
-            child: QuillEditor.basic(
+          Expanded(
+            child: quill.QuillEditor(
               controller: controller,
-              config: QuillEditorConfig(
-                placeholder: placeholder,
-                autoFocus: false,
-                expands: false,
-                padding: EdgeInsets.zero,
-              ),
+              scrollController: ScrollController(),
+              focusNode: FocusNode(),
             ),
           ),
         ],
