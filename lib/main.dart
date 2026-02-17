@@ -37,7 +37,7 @@ Future<void> loadEnvSafely() async {
     try {
       // Если не удалось как ассет, пробуем загрузить как обычный файл
       if (Platform.environment.containsKey('FLUTTER_WEB')) {
-        // Для веба не пытаемся загружать .env файл через flutter_dotenv
+        // Для веба не пытаемся загрузить .env файл через flutter_dotenv
         // _showToast('Запуск в веб-окружении, используем переменные окружения Dart');
       } else {
         // На мобильных и десктопных платформах пробуем загрузить .env файл
@@ -105,7 +105,6 @@ Future<void> main() async {
     envSupabaseKey = _getEnvValue('SUPABASE_KEY');
   } catch (e) {
     // Если возникла ошибка доступа к dotenv (например, в вебе), используем только AppConfig
-    // _showToast('Ошибка доступа к переменным окружения: $e');
     envSupabaseUrl = null;
     envSupabaseKey = null;
   }
@@ -160,7 +159,33 @@ class TeaApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('ru'), Locale('en')],
       theme: ThemeData(
-        primarySwatch: Colors.blueGrey,
+        primarySwatch: Colors.deepPurple, // Основной цвет - глубокий фиолетовый
+        primaryColor: const Color(0xFF9B59B6), // Фиолетовый
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF9B59B6), // Фиолетовый как основной цвет
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF9B59B6), // Фиолетовый заголовок
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        cardTheme: CardTheme.of(context).copyWith(
+          elevation: 6,
+          shadowColor: const Color(0xFFFF69B4).withOpacity(0.3), // Розовая тень
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF9B59B6), // Фиолетовая кнопка
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
             TargetPlatform.android: CupertinoPageTransitionsBuilder(),

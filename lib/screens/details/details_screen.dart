@@ -98,15 +98,16 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
         },
         child: CustomScrollView(
           slivers: [
-            // 1. Красивая шапка с галереей
+            // 1. Красивая шапка с галереей и фиолетово-розовым градиентом
             SliverAppBar(
               expandedHeight: 350,
               pinned: true,
               automaticallyImplyLeading: true, // Показывает кнопку назад
+              backgroundColor: const Color(0xFF9B59B6), // Фиолетовый фон
               actions: [
                 if (isConnected) // Показываем меню только при наличии интернета
                   PopupMenuButton(
-                    icon: const Icon(Icons.more_vert),
+                    icon: const Icon(Icons.more_vert, color: Colors.white),
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'edit',
@@ -152,10 +153,20 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                   ),
               ],
               flexibleSpace: FlexibleSpaceBar(
-                title: !_isExpanded ? Text(
-                  _currentTea.name, // Показываем название чая только при закреплении
-                  style: const TextStyle(color: Colors.white),
-                  overflow: TextOverflow.ellipsis,
+                title: !_isExpanded ? Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFFF69B4).withOpacity(0.7), // Розовый полупрозрачный фон
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    _currentTea.name, // Показываем название чая только при закреплении
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ) : null,
                 background: Stack(
                   fit: StackFit.expand,
@@ -172,8 +183,14 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                                 ? CachedNetworkImage(
                                     imageUrl: path,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                                    errorWidget: (context, url, error) => const Icon(Icons.error),
+                                    placeholder: (context, url) => Container(
+                                      color: Colors.grey[300],
+                                      child: const Center(child: CircularProgressIndicator()),
+                                    ),
+                                    errorWidget: (context, url, error) => Container(
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.error),
+                                    ),
                                   )
                                 : Image.asset(path, fit: BoxFit.cover),
                           ),
@@ -182,21 +199,34 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       options: CarouselOptions(
                         height: 400,
                         viewportFraction: 1.0,
-                        autoPlay: true,
+                        autoPlay: _currentTea.images.length > 1,
                         enableInfiniteScroll: _currentTea.images.length > 1,
+                        autoPlayCurve: Curves.easeInOut,
+                        autoPlayAnimationDuration: const Duration(seconds: 3),
                       ),
                     ),
-                    // Градиент снизу, чтобы текст имени был читаем (если захотите его в AppBar)
-                    const IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Colors.black45],
-                            stops: [0.7, 1.0],
-                          ),
+                    // Градиент снизу, чтобы текст имени был читаем
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            const Color(0xFF9B59B6).withOpacity(0.8), // Фиолетовый полупрозрачный
+                          ],
+                          stops: [0.7, 1.0],
                         ),
+                      ),
+                    ),
+                    // Эффект блёсток
+                    Positioned(
+                      top: 50,
+                      right: 20,
+                      child: Icon(
+                        Icons.auto_awesome,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 30,
                       ),
                     ),
                   ],
@@ -206,130 +236,257 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
 
             // 2. Контентная часть
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Индикатор оффлайн режима
-                    if (!isConnected)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(8.0),
-                        margin: const EdgeInsets.only(bottom: 16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade100,
-                          borderRadius: BorderRadius.circular(8),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white,
+                      Color(0xFFF8F6FF), // Светло-фиолетовый оттенок
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Индикатор оффлайн режима
+                      if (!isConnected)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8.0),
+                          margin: const EdgeInsets.only(bottom: 16.0),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.warning, color: Colors.orange, size: 16),
+                              SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'Оффлайн режим - редактирование и удаление недоступны',
+                                  style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.warning, color: Colors.orange, size: 16),
-                            SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                'Оффлайн режим - редактирование и удаление недоступны',
-                                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+
+                      // Название и Вес
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _currentTea.name,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(1, 1),
+                                    blurRadius: 3,
+                                    color: Colors.grey,
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          if (_currentTea.weight != null && _currentTea.weight!.isNotEmpty)
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF69B4).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFFF69B4),
+                                  width: 1,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              child: Text(
+                                "${_currentTea.weight}",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.pink[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Чипсы: Тип и Страна с новым дизайном
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (_currentTea.country != null)
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    const Color(0xFF6C5CE7), // Фиолетовый
+                                    const Color(0xFFA29BFE),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                child: Text(
+                                  _currentTea.country!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (_currentTea.type != null)
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    const Color(0xFFFD79A8), // Розовый
+                                    const Color(0xFFFFDDF4),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                child: Text(
+                                  _currentTea.type!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
 
-                    // Название и Вес
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _currentTea.name,
-                            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                      const Divider(height: 40),
+
+                      // 3. Секция характеристик (Appearance & Temperature)
+                      // Показываем только если есть данные для отображения
+                      if (_currentTea.appearance != null || (_currentTea.temperature != null && _currentTea.temperature!.trim().isNotEmpty)) ...[
+                        const SectionTitle("Характеристики"),
+                        const SizedBox(height: 8),
+                        if (_currentTea.appearance != null)
+                          FeatureRow(icon: Icons.visibility_outlined, label: "Внешний вид", value: _currentTea.appearance!),
+                        if (_currentTea.temperature != null && _currentTea.temperature!.trim().isNotEmpty)
+                          FeatureRow(
+                            icon: Icons.thermostat_outlined,
+                            label: "Температура заваривания",
+                            value: _currentTea.temperature!,
                           ),
+                        const SizedBox(height: 40),
+                      ],
+
+                      const SizedBox(height: 40),
+
+                      // 4. Вкусовой профиль
+                      if (_currentTea.flavors.isNotEmpty) ...[
+                        const SectionTitle("Вкусовой профиль"),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _currentTea.flavors.map((f) => Container(
+                            decoration: BoxDecoration(
+                              color: Colors.purple[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFF9B59B6).withOpacity(0.3),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              child: Text(
+                                f,
+                                style: TextStyle(
+                                  color: Colors.purple[700],
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          )).toList(),
                         ),
-                        if (_currentTea.weight != null && _currentTea.weight!.isNotEmpty)
-                          Container(
-                            child: Text(
-                              "${_currentTea.weight}",
-                              style: TextStyle(fontSize: 18, color: Colors.green[700], fontWeight: FontWeight.w600),
+                        const SizedBox(height: 40),
+                      ],
+
+                      // 6. Инструкция по завариванию
+                      if (isHtmlContentNotEmpty(_currentTea.brewingGuide)) ...[
+                        Container(
+                          margin: const EdgeInsets.only(top: 24), // Отступ сверху, чтобы не прилипало
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEDCF5).withOpacity(0.5), // Фиолетовый легкий фон
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF9B59B6).withOpacity(0.3),
+                              width: 1,
                             ),
                           ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.local_cafe_outlined,
+                                    color: Color(0xFF9B59B6),
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const SectionTitle("Как заваривать"),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              HtmlWidget(
+                                _currentTea.brewingGuide!,
+                                textStyle: const TextStyle(fontSize: 15, height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 40),
                       ],
-                    ),
-                    const SizedBox(height: 12),
 
-                    // Чипсы: Тип и Страна
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        if (_currentTea.country != null)
-                          InfoChip(label: _currentTea.country!, backgroundColor: Colors.blue[50]),
-                        if (_currentTea.type != null)
-                          InfoChip(label: _currentTea.type!, backgroundColor: Colors.green[50]),
+                      // 5. Описание
+                      if (isHtmlContentNotEmpty(_currentTea.description)) ...[
+                        const SectionTitle("О чае"),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF5F9).withOpacity(0.7), // Розовый легкий фон
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFFF69B4).withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: HtmlWidget(
+                            _currentTea.description!,
+                            textStyle: const TextStyle(fontSize: 16, height: 1.5),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
                       ],
-                    ),
-
-                    const Divider(height: 40),
-
-                    // 3. Секция характеристик (Appearance & Temperature)
-                    // Показываем только если есть данные для отображения
-                    if (_currentTea.appearance != null || (_currentTea.temperature != null && _currentTea.temperature!.trim().isNotEmpty)) ...[
-                      const SectionTitle("Характеристики"),
-                      const SizedBox(height: 8),
-                      if (_currentTea.appearance != null)
-                        FeatureRow(icon: Icons.visibility_outlined, label: "Внешний вид", value: _currentTea.appearance!),
-                      if (_currentTea.temperature != null && _currentTea.temperature!.trim().isNotEmpty)
-                        FeatureRow(
-                          icon: Icons.thermostat_outlined,
-                          label: "Температура заваривания",
-                          value: _currentTea.temperature!,
-                        ),
-                      const SizedBox(height: 40),
                     ],
-
-                    const SizedBox(height: 40),
-
-                    // 4. Вкусовой профиль
-                    if (_currentTea.flavors.isNotEmpty) ...[
-                      const SectionTitle("Вкусовой профиль"),
-                      const SizedBox(height: 8),
-                      Wrap(spacing: 8, runSpacing: 8, children: _currentTea.flavors.map((f) => FlavorTag(f)).toList()),
-                      const SizedBox(height: 40),
-                    ],
-
-                    // 6. Инструкция по завариванию
-                    if (isHtmlContentNotEmpty(_currentTea.brewingGuide)) ...[
-                      Container(
-                        margin: const EdgeInsets.only(top: 24), // Отступ сверху, чтобы не прилипало
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1), // Легкий фон
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SectionTitle("Как заваривать"),
-                            const SizedBox(height: 8),
-                            HtmlWidget(_currentTea.brewingGuide!, textStyle: const TextStyle(fontSize: 15, height: 1.4)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-
-                    // 5. Описание
-                    if (isHtmlContentNotEmpty(_currentTea.description)) ...[
-                      const SectionTitle("О чае"),
-                      const SizedBox(height: 8),
-                      HtmlWidget(
-                        _currentTea.description!,
-                        textStyle: const TextStyle(fontSize: 16, height: 1.5),
-                        // Можно настроить отступы или кастомные стили для тегов
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ),
