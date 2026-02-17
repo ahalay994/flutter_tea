@@ -263,7 +263,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       spacing: 8,
                       children: [
                         if (_currentTea.country != null)
-                          InfoChip(label: _currentTea.country!, backgroundColor: Colors.green[50]),
+                          InfoChip(label: _currentTea.country!, backgroundColor: Colors.blue[50]),
                         if (_currentTea.type != null)
                           InfoChip(label: _currentTea.type!, backgroundColor: Colors.green[50]),
                       ],
@@ -272,16 +272,20 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     const Divider(height: 40),
 
                     // 3. Секция характеристик (Appearance & Temperature)
-                    const SectionTitle("Характеристики"),
-                    const SizedBox(height: 8),
-                    if (_currentTea.appearance != null)
-                      FeatureRow(icon: Icons.visibility_outlined, label: "Внешний вид", value: _currentTea.appearance!),
-                    if (_currentTea.temperature != null && _currentTea.temperature!.trim().isNotEmpty)
-                      FeatureRow(
-                        icon: Icons.thermostat_outlined,
-                        label: "Температура заваривания",
-                        value: _currentTea.temperature!,
-                      ),
+                    // Показываем только если есть данные для отображения
+                    if (_currentTea.appearance != null || (_currentTea.temperature != null && _currentTea.temperature!.trim().isNotEmpty)) ...[
+                      const SectionTitle("Характеристики"),
+                      const SizedBox(height: 8),
+                      if (_currentTea.appearance != null)
+                        FeatureRow(icon: Icons.visibility_outlined, label: "Внешний вид", value: _currentTea.appearance!),
+                      if (_currentTea.temperature != null && _currentTea.temperature!.trim().isNotEmpty)
+                        FeatureRow(
+                          icon: Icons.thermostat_outlined,
+                          label: "Температура заваривания",
+                          value: _currentTea.temperature!,
+                        ),
+                      const SizedBox(height: 40),
+                    ],
 
                     const SizedBox(height: 40),
 

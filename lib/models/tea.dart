@@ -118,16 +118,46 @@ class TeaModel {
     required List<AppearanceResponse> appearances,
     required List<FlavorResponse> flavors,
   }) {
-    // Функция для получения названия по ID с fallback к ID в виде текста при отсутствии метаданных
-    String? getNameById(List<dynamic> list, int? id, String Function(dynamic) nameExtractor, String? idText) {
-      if (id == null || idText == null) return null;
-      // Проверяем, есть ли метаданные (список не пуст)
-      if (list.isNotEmpty) {
-        return DataMapper.getFieldById(list, nameExtractor, id);
+    String? countryName;
+    if (countryId != null) {
+      int? parsedId = int.tryParse(countryId);
+      if (parsedId != null && countries.isNotEmpty) {
+        countryName = DataMapper.getFieldById(countries, (c) => c.name, parsedId);
       } else {
-        // Если метаданные отсутствуют, возвращаем ID как текст
-        return idText;
+        countryName = countryId; // Если метаданные отсутствуют, используем ID как текст
       }
+    }
+
+    String? typeName;
+    if (typeId != null) {
+      int? parsedId = int.tryParse(typeId);
+      if (parsedId != null && types.isNotEmpty) {
+        typeName = DataMapper.getFieldById(types, (t) => t.name, parsedId);
+      } else {
+        typeName = typeId; // Если метаданные отсутствуют, используем ID как текст
+      }
+    }
+
+    String? appearanceName;
+    if (appearanceId != null) {
+      int? parsedId = int.tryParse(appearanceId);
+      if (parsedId != null && appearances.isNotEmpty) {
+        appearanceName = DataMapper.getFieldById(appearances, (a) => a.name, parsedId);
+      } else {
+        appearanceName = appearanceId; // Если метаданные отсутствуют, используем ID как текст
+      }
+    }
+
+    List<String> flavorNames;
+    if (flavorIds.isNotEmpty) {
+      if (flavors.isNotEmpty) {
+        flavorNames = DataMapper.getFieldsByIds(flavors, (f) => f.name, 
+            flavorIds.map((id) => int.tryParse(id)).where((id) => id != null).cast<int>().toList());
+      } else {
+        flavorNames = flavorIds; // Если метаданные отсутствуют, используем ID как текст
+      }
+    } else {
+      flavorNames = [];
     }
 
     return TeaModel(
@@ -138,13 +168,10 @@ class TeaModel {
       weight: weight,
       description: description,
       images: images,
-      country: countryId != null ? getNameById(countries, int.tryParse(countryId), (c) => c.name, countryId) : null,
-      type: typeId != null ? getNameById(types, int.tryParse(typeId), (t) => t.name, typeId) : null,
-      appearance: appearanceId != null ? getNameById(appearances, int.tryParse(appearanceId), (a) => a.name, appearanceId) : null,
-      flavors: flavorIds.isNotEmpty 
-          ? (flavors.isNotEmpty
-              ? DataMapper.getFieldsByIds(flavors, (f) => f.name, flavorIds.map((id) => int.tryParse(id)).where((id) => id != null).cast<int>().toList())
-              : flavorIds), // Если метаданные отсутствуют, возвращаем ID как текст
+      country: countryName,
+      type: typeName,
+      appearance: appearanceName,
+      flavors: flavorNames,
     );
   }
 
