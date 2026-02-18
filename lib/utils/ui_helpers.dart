@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:tea/widgets/animated_loader.dart';
+
+// Глобальная переменная для отслеживания активного OverlayEntry
+OverlayEntry? _fullScreenLoaderEntry;
 
 extension UiHelpers on BuildContext {
   // Универсальная модалка ошибки
@@ -26,6 +30,7 @@ extension UiHelpers on BuildContext {
     );
   }
 
+  // Стандартный модальный лоадер (как раньше)
   void showLoadingDialog() {
     showDialog(
       context: this,
@@ -43,9 +48,40 @@ extension UiHelpers on BuildContext {
     );
   }
 
+  // Скрытие стандартного модального лоадера
   void hideLoading() {
-    if (Navigator.of(this).canPop()) {
+    // Пытаемся закрыть любой открытый Dialog/Modal с помощью pop()
+    // Используем try-catch, чтобы избежать ошибок, если ничего нечего закрывать
+    try {
       Navigator.of(this).pop();
+    } catch (e) {
+      // Если нечего закрывать, просто игнорируем ошибку
+    }
+  }
+
+  // Показ полноэкранного лоадера с использованием Overlay
+  void showFullScreenLoader() {
+    // Убедимся, что предыдущий лоадер закрыт
+    hideFullScreenLoader();
+
+    _fullScreenLoaderEntry = OverlayEntry(
+      builder: (context) => Container(
+        color: Colors.white.withValues(alpha: 0.8), // Прозрачный белый фон
+        child: const Center(
+          child: AnimatedLoader(size: 100),
+        ),
+      ),
+    );
+
+    // Добавляем OverlayEntry в Overlay
+    Overlay.of(this)?.insert(_fullScreenLoaderEntry!);
+  }
+
+  // Скрытие полноэкранного лоадера
+  void hideFullScreenLoader() {
+    if (_fullScreenLoaderEntry != null) {
+      _fullScreenLoaderEntry!.remove();
+      _fullScreenLoaderEntry = null;
     }
   }
 }

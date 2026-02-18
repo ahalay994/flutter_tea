@@ -546,8 +546,8 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
             onPressed: () async {
               Navigator.of(context).pop(); // Закрываем диалог подтверждения
               
-              // Показываем индикатор загрузки
-              this.context.showLoadingDialog(); // используем контекст State
+              // Показываем полноэкранный индикатор загрузки
+              this.context.showFullScreenLoader(); // используем контекст State
               
               bool success = false;
               String? errorMessage;
@@ -568,30 +568,33 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                 errorMessage = e.toString();
               }
               
-              // Скрываем индикатор загрузки с проверкой mounted
+              // Обязательно скрываем индикатор загрузки в finally блоке, чтобы он закрылся в любом случае
               if (mounted) {
-                this.context.hideLoading(); // используем контекст State
-                
-                // Откладываем навигацию до следующего кадра, чтобы избежать коллизий
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    if (success) {
-                      // Показываем сообщение об успешном удалении
-                      ScaffoldMessenger.of(this.context).showSnackBar(
-                        SnackBar(content: Text("Чай \"${_currentTea.name}\" успешно удалён"), backgroundColor: Colors.green),
-                      );
-                      
-                      // Возвращаемся на главный экран при успешном удалении
-                      Navigator.of(this.context).pop(); // Закрываем экран деталей
-                    } else {
-                      // Показываем ошибку, если удаление не удалось
-                      if (mounted) {
-                        this.context.showErrorDialog(errorMessage ?? "Не удалось удалить чай");
-                      }
+                this.context.hideFullScreenLoader(); // используем контекст State
+              }
+              
+              // Откладываем навигацию до следующего кадра, чтобы избежать коллизий
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  if (success) {
+                    // Показываем сообщение об успешном удалении
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text("Чай \"${_currentTea.name}\" успешно удалён"), backgroundColor: Colors.green),
+                    );
+                    
+                    // Возвращаемся на главный экран при успешном удалении
+                    if (mounted) {
+                      // Используем более надежный способ возврата
+                      Navigator.of(this.context).maybePop(); // Закрываем экран деталей
+                    }
+                  } else {
+                    // Показываем ошибку, если удаление не удалось
+                    if (mounted) {
+                      this.context.showErrorDialog(errorMessage ?? "Не удалось удалить чай");
                     }
                   }
-                });
-              }
+                }
+              });
             },
             child: const Text("Да", style: TextStyle(color: Colors.red)),
           ),
