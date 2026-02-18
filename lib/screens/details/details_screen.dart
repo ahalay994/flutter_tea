@@ -117,13 +117,14 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
               actions: [
                 if (isConnected) // Показываем меню только при наличии интернета
                   PopupMenuButton(
-                    icon: const Icon(Icons.more_vert, color: Colors.white),
+                    tooltip: '',
+                    icon: const Icon(Icons.more_vert, color: Colors.black87),
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, size: 20),
+                            Icon(Icons.edit, size: 20, color: Colors.black87),
                             SizedBox(width: 8),
                             Text('Редактировать'),
                           ],

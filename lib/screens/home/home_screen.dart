@@ -492,7 +492,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 );
               },
-              backgroundColor: Colors.blueAccent,
+              backgroundColor: Theme.of(context).colorScheme.secondary,
               child: const Icon(Icons.add),
             )
           : null, // Не отображаем кнопку добавления в оффлайн-режиме
