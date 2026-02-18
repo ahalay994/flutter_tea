@@ -124,18 +124,30 @@ class TeaCard extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: path.startsWith('http')
-                            ? CachedNetworkImage(
-                                imageUrl: path,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: Colors.grey[300],
-                                  child: const Center(child: CircularProgressIndicator()),
+                        child: Container(
+                          color: Colors.grey[300], // фон, который будет виден, если изображение не заполняет полностью
+                          child: path.startsWith('http')
+                              ? CachedNetworkImage(
+                                  imageUrl: path,
+                                  width: double.infinity, // заполняет всю доступную ширину
+                                  height: 200, // фиксированная высота
+                                  fit: BoxFit.fitWidth, // заполняет ширину контейнера
+                                  alignment: Alignment.center, // центрирует изображение по высоте
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Center(child: CircularProgressIndicator()),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(color: Colors.grey[300], child: const Icon(Icons.error)),
+                                )
+                              : Image(
+                                  image: AssetImage(path),
+                                  width: double.infinity, // заполняет всю доступную ширину
+                                  height: 200, // фиксированная высота
+                                  fit: BoxFit.fitWidth, // заполняет ширину контейнера
+                                  alignment: Alignment.center, // центрирует изображение по высоте
                                 ),
-                                errorWidget: (context, url, error) =>
-                                    Container(color: Colors.grey[300], child: const Icon(Icons.error)),
-                              )
-                            : Image.asset(path, fit: BoxFit.cover),
+                        ),
                       ),
                     );
                   }).toList(),
