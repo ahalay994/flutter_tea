@@ -47,7 +47,7 @@ lib/
 │   ├── local_database_service.dart # Локальная база данных
 │   ├── network_service.dart  # Сервис сети
 │   ├── supabase_service.dart # Сервис Supabase
-│   └── image_cache_service.dart # Кеширование изображений
+
 ├── utils/                    # Утилиты
 │   ├── app_logger.dart       # Логирование
 │   ├── json_utils.dart       # Утилиты для JSON

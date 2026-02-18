@@ -130,7 +130,7 @@ flutter run
 ### 5. lib/services/ - Сервисы приложения
 - `local_database_service.dart` - локальная база данных
 - `network_service.dart` - работа с сетью
-- `image_cache_service.dart` - кеширование изображений
+
 - `tea_service.dart` - бизнес-логика чаёв
 
 ### 6. lib/utils/ - Утилиты
