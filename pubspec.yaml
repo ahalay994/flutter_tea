@@ -141,6 +141,8 @@ flutter_native_splash:
     # Используется для Android 12 и выше
     color: "#FFFFFF"
     color_dark: "#121212"
+    # Убираем изображение для Android 12+ чтобы избежать ограничений Adaptive Icons
+    # и использовать только цветной фон для более полного заполнения экрана
     image: assets/images/splash.png
     icon_background_color: "#FFFFFF"
     icon_background_color_dark: "#121212"
