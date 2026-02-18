@@ -27,7 +27,7 @@ class TeaCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: Theme.of(context).primaryColor.withOpacity(0.5), // Цвет текущей темы
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.5), // Цвет текущей темы
           width: 2,
         ),
       ),
@@ -37,7 +37,7 @@ class TeaCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.white, Theme.of(context).primaryColor.withOpacity(0.05)],
+            colors: [Colors.white, Theme.of(context).primaryColor.withValues(alpha: 0.05),],
           ),
         ),
         child: InkWell(
@@ -115,7 +115,7 @@ class TeaCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Theme.of(context).primaryColor.withOpacity(0.3),
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                             spreadRadius: 1,
                             blurRadius: 5,
                             offset: const Offset(0, 3),
@@ -154,7 +154,7 @@ class TeaCard extends StatelessWidget {
                         if (tea.type != null)
                           Container(
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.secondary, // Насыщенный вторичный цвет без прозрачности
+                              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 1.0), // Насыщенный вторичный цвет без прозрачности
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Padding(
@@ -173,7 +173,7 @@ class TeaCard extends StatelessWidget {
                         if (tea.country != null)
                           Container(
                             decoration: BoxDecoration(
-                              color: _getModifiedSecondaryColor(Theme.of(context).colorScheme.secondary, 0.1).withOpacity(0.9), // Изменённый вторичный цвет с 90% непрозрачностью
+                              color: _getModifiedSecondaryColor(Theme.of(context).colorScheme.secondary, 0.1).withValues(alpha: 0.9), // Изменённый вторичный цвет с 90% непрозрачностью
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Padding(
@@ -229,9 +229,9 @@ class TeaCard extends StatelessWidget {
                                     displayedFlavors.map(
                                       (f) => Container(
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+                                          border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.3)),
                                         ),
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -250,9 +250,9 @@ class TeaCard extends StatelessWidget {
                                   if (extraCount > 0)
                                     Container(
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+                                        border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.3)),
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

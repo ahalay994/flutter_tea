@@ -216,7 +216,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Theme.of(context).primaryColor.withOpacity(0.8), // Основной цвет темы
+                            Theme.of(context).primaryColor.withValues(alpha: 0.8), // Основной цвет темы
                           ],
                           stops: [0.7, 1.0],
                         ),
@@ -228,7 +228,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       right: 20,
                       child: Icon(
                         Icons.auto_awesome,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         size: 30,
                       ),
                     ),
@@ -246,7 +246,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.white,
-                      Theme.of(context).primaryColor.withOpacity(0.05), // Легкий оттенок основного цвета темы
+                      Theme.of(context).primaryColor.withValues(alpha: 0.05), // Легкий оттенок основного цвета темы
                     ],
                   ),
                 ),
@@ -303,7 +303,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           if (_currentTea.weight != null && _currentTea.weight!.isNotEmpty)
                             Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: Theme.of(context).primaryColor,
@@ -316,7 +316,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Color.alphaBlend(
-                                    Theme.of(context).primaryColor.withOpacity(0.7),
+                                    Theme.of(context).primaryColor.withValues(alpha: 0.7),
                                     Colors.black,
                                   ),
                                   fontWeight: FontWeight.w600,
@@ -334,7 +334,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           if (_currentTea.type != null)
                             Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.secondary, // Насыщенный вторичный цвет без прозрачности
+                                color: Theme.of(context).colorScheme.secondary.withValues(alpha: 1.0), // Насыщенный вторичный цвет без прозрачности
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Padding(
@@ -359,7 +359,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           if (_currentTea.country != null)
                             Container(
                               decoration: BoxDecoration(
-                                color: _getModifiedSecondaryColor(Theme.of(context).colorScheme.secondary, 0.1).withOpacity(0.9), // Изменённый вторичный цвет с 90% непрозрачностью
+                                color: _getModifiedSecondaryColor(Theme.of(context).colorScheme.secondary, 0.1).withValues(alpha: 0.9), // Изменённый вторичный цвет с 90% непрозрачностью
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Padding(
@@ -413,10 +413,10 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           runSpacing: 8,
                           children: _currentTea.flavors.map((f) => Container(
                             decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor.withOpacity(0.1),
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Theme.of(context).primaryColor.withOpacity(0.3),
+                                color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                               ),
                             ),
                             child: Padding(
@@ -441,10 +441,10 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           margin: const EdgeInsets.only(top: 24), // Отступ сверху, чтобы не прилипало
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor.withOpacity(0.1), // Цвет темы с прозрачностью
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.1), // Цвет темы с прозрачностью
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Theme.of(context).primaryColor.withOpacity(0.3),
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -480,10 +480,10 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor.withOpacity(0.1), // Цвет темы с прозрачностью
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.1), // Цвет темы с прозрачностью
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Theme.of(context).primaryColor.withOpacity(0.3),
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),

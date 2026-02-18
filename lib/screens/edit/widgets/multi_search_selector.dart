@@ -103,9 +103,9 @@ class _MultiSearchSelectorState<T> extends State<MultiSearchSelector<T>> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+                  border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

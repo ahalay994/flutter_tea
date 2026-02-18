@@ -43,7 +43,7 @@ class FullScreenLoader extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: Colors.white.withOpacity(0.8), // Прозрачный белый фон
+            color: Colors.white.withValues(alpha: 0.8), // Прозрачный белый фон
             child: const Center(
               child: AnimatedLoader(size: 100),
             ),

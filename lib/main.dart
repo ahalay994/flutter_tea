@@ -222,7 +222,7 @@ class _ThemeWrapperState extends ConsumerState<ThemeWrapper> {
             ),
             cardTheme: CardTheme.of(context).copyWith(
               elevation: 6,
-              shadowColor: secondaryColor.withOpacity(0.3),
+              shadowColor: secondaryColor.withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

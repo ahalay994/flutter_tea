@@ -28,7 +28,7 @@ class MultiSearchSelector<T> extends StatelessWidget {
       onChanged: onChanged,
       compareFn: (item1, item2) => itemLabel(item1) == itemLabel(item2),
       popupProps: PopupPropsMultiSelection.modalBottomSheet(
-        modalBottomSheetProps: ModalBottomSheetProps(backgroundColor: Theme.of(context).primaryColor.withOpacity(0.05)),
+        modalBottomSheetProps: ModalBottomSheetProps(backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.05)),
         showSearchBox: true,
         showSelectedItems: true,
         emptyBuilder: (context, search) => Center(
@@ -53,7 +53,7 @@ class MultiSearchSelector<T> extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+            borderSide: BorderSide(color: Theme.of(context).primaryColor.withValues(alpha: 0.3)),
           ),
         ),
       ),
