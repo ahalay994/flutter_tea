@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'providers/theme_provider.dart';
 import 'screens/home/home_screen.dart';
 import 'services/supabase_service.dart';
 import 'utils/app_config.dart';
@@ -96,6 +97,9 @@ Future<void> main() async {
   // Загружаем .env файл асинхронно и безопасно
   await loadEnvSafely();
   
+  // Инициализируем менеджер тем
+  await ThemeManager().initialize();
+  
   // Инициализация Supabase асинхронно, чтобы не блокировать запуск приложения
   // Проверяем, что мы можем получить доступ к переменным окружения
   String? envSupabaseUrl, envSupabaseKey;
@@ -158,42 +162,91 @@ class TeaApp extends StatelessWidget {
         FlutterQuillLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ru'), Locale('en')],
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple, // Основной цвет - глубокий фиолетовый
-        primaryColor: const Color(0xFF9B59B6), // Фиолетовый
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF9B59B6), // Фиолетовый как основной цвет
-          brightness: Brightness.light,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF9B59B6), // Фиолетовый заголовок
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        cardTheme: CardTheme.of(context).copyWith(
-          elevation: 6,
-          shadowColor: const Color(0xFFFF69B4).withOpacity(0.3), // Розовая тень
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF9B59B6), // Фиолетовая кнопка
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+      home: ThemeWrapper(),
+    );
+  }
+}
+
+// Вспомогательный виджет для переключения темы
+class ThemeWrapper extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<ThemeWrapper> createState() => _ThemeWrapperState();
+}
+
+class _ThemeWrapperState extends ConsumerState<ThemeWrapper> {
+  late ValueNotifier<AppTheme> _themeListenable;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeListenable = ref.read(themeNotifierProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<AppTheme>(
+      valueListenable: _themeListenable,
+      builder: (context, appTheme, child) {
+        // Для пользовательской темы всегда используем цвета из ThemeManager
+        Color primaryColor = ThemeManager().customPrimaryColor;
+        Color secondaryColor = ThemeManager().customSecondaryColor;
+        
+        // Получаем имя приложения для использования в теме
+        String appName = AppConfig.appName; // по умолчанию используем AppConfig
+        try {
+          // Пытаемся получить из dotenv, если доступно
+          String? envAppName = _getEnvValue('APP_NAME');
+          if (envAppName != null && envAppName.isNotEmpty) {
+            appName = envAppName;
+          }
+        } catch (e) {
+          // Если возникла ошибка доступа к dotenv, используем AppConfig
+          // _showToast('Ошибка доступа к APP_NAME из dotenv: $e');
+        }
+        
+        return MaterialApp(
+          title: appName,
+          theme: ThemeData(
+            primarySwatch: Colors.grey,
+            primaryColor: primaryColor,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: primaryColor,
+              brightness: Brightness.light,
+            ).copyWith(
+              secondary: secondaryColor, // Явно устанавливаем вторичный цвет
+            ),
+            appBarTheme: AppBarTheme(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            cardTheme: CardTheme.of(context).copyWith(
+              elevation: 6,
+              shadowColor: secondaryColor.withOpacity(0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+              },
             ),
           ),
-        ),
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          },
-        ),
-      ),
-      home: const HomeScreen(),
+          home: const HomeScreen(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

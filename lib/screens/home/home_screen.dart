@@ -9,6 +9,7 @@ import 'package:tea/utils/app_config.dart';
 import 'package:tea/widgets/animated_loader.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/providers/connection_status_provider.dart';
+import 'package:tea/widgets/theme_selector_modal.dart';
 
 import 'widgets/tea_card.dart';
 import 'widgets/tea_facet_filter_drawer.dart';
@@ -308,25 +309,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       error: (error, stack) => false, // При ошибке используем предыдущее значение
     );
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_getAppName()),
-        actions: [
-          // Показываем индикатор фильтрации, если фильтры активны
-          if (isFiltered)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Icon(Icons.filter_alt, color: Colors.blue),
+              appBar: AppBar(
+              title: Text(_getAppName()),
+              actions: [
+                // Кнопка выбора темы
+                IconButton(
+                  icon: const Icon(Icons.color_lens, color: Colors.white),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return const ThemeSelectorModal();
+                      },
+                    );
+                  },
+                ),
+                // Индикатор статуса подключения
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: isConnected 
+                      ? Icon(Icons.signal_cellular_alt, color: Colors.white)
+                      : Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.white),
+                ),
+              ],
+              backgroundColor: Theme.of(context).primaryColor, // Используем текущую тему
             ),
-          // Индикатор статуса подключения
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: isConnected 
-                ? Icon(Icons.signal_cellular_alt, color: Colors.green)
-                : Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.red),
-          ),
-        ],
-      ),
-      drawer: const TeaFacetFilterDrawer(),
+          drawer: const TeaFacetFilterDrawer(),
       body: Column(
         children: [
           // Индикатор оффлайн режима - над шапкой списка

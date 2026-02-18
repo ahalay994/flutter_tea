@@ -9,11 +9,20 @@ class FlavorTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.orange[50],
+        color: Theme.of(context).primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.orange[200]!),
+        border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
       ),
-      child: Text(flavor, style: TextStyle(color: Colors.orange[900], fontSize: 13)),
+      child: Text(
+        flavor, 
+        style: TextStyle(
+          color: Color.alphaBlend(
+            Theme.of(context).primaryColor.withOpacity(0.7),
+            Colors.black,
+          ),
+          fontSize: 13,
+        ),
+      ),
     );
   }
 }

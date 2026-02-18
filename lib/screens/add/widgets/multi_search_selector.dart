@@ -26,28 +26,14 @@ class MultiSearchSelector<T> extends StatelessWidget {
       itemAsString: itemLabel,
       selectedItems: selectedValues,
       onChanged: onChanged,
-      compareFn: (item1, item2) => (item1 as dynamic).id == (item2 as dynamic).id,
-
-      decoratorProps: DropDownDecoratorProps(
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-        ),
-      ),
-
-      popupProps: PopupPropsMultiSelection.bottomSheet(
-        bottomSheetProps: BottomSheetProps(backgroundColor: Colors.blueGrey[50]),
+      compareFn: (item1, item2) => itemLabel(item1) == itemLabel(item2),
+      popupProps: PopupPropsMultiSelection.modalBottomSheet(
+        modalBottomSheetProps: ModalBottomSheetProps(backgroundColor: Theme.of(context).primaryColor.withOpacity(0.05)),
         showSearchBox: true,
         showSelectedItems: true,
         emptyBuilder: (context, search) => Center(
           child: TextButton.icon(
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add, color: Theme.of(context).primaryColor),
             label: Text("Добавить '$search'"),
             onPressed: () {
               final newItem = onCreate(search);
@@ -55,6 +41,19 @@ class MultiSearchSelector<T> extends StatelessWidget {
               onChanged([...selectedValues, newItem]);
               Navigator.pop(context);
             },
+          ),
+        ),
+      ),
+      decoratorProps: DropDownDecoratorProps(
+        baseStyle: TextStyle(color: Colors.black87),
+        decoration: InputDecoration(
+          hintText: hint,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.3)),
           ),
         ),
       ),

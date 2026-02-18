@@ -74,6 +74,11 @@ class _MultiSearchSelectorState<T> extends State<MultiSearchSelector<T>> {
           decoration: InputDecoration(
             hintText: widget.hint,
             border: const OutlineInputBorder(),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
           ),
           onChanged: (value) {
             _filterItems(value);
@@ -98,9 +103,9 @@ class _MultiSearchSelectorState<T> extends State<MultiSearchSelector<T>> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue[100],
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue[200]!),
+                  border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -109,7 +114,7 @@ class _MultiSearchSelectorState<T> extends State<MultiSearchSelector<T>> {
                     const SizedBox(width: 4),
                     GestureDetector(
                       onTap: () => _removeItem(item),
-                      child: const Icon(Icons.close, size: 16, color: Colors.blue),
+                      child: Icon(Icons.close, size: 16, color: Theme.of(context).primaryColor),
                     ),
                   ],
                 ),
@@ -119,7 +124,7 @@ class _MultiSearchSelectorState<T> extends State<MultiSearchSelector<T>> {
         if (_showOptions && _filteredItems.isNotEmpty)
           Container(
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
+              border: Border.all(color: Theme.of(context).primaryColor),
               borderRadius: BorderRadius.circular(4),
             ),
             constraints: const BoxConstraints(maxHeight: 200),
@@ -131,6 +136,7 @@ class _MultiSearchSelectorState<T> extends State<MultiSearchSelector<T>> {
                 return ListTile(
                   title: Text(widget.itemLabel(item)),
                   onTap: () => _addItem(item),
+                  selectedColor: Theme.of(context).primaryColor,
                 );
               },
             ),
@@ -138,7 +144,7 @@ class _MultiSearchSelectorState<T> extends State<MultiSearchSelector<T>> {
         if (_showOptions && _filteredItems.isEmpty && _textController.text.isNotEmpty)
           Container(
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
+              border: Border.all(color: Theme.of(context).primaryColor),
               borderRadius: BorderRadius.circular(4),
             ),
             child: ListTile(

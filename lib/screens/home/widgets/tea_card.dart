@@ -1,14 +1,23 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/screens/details/details_screen.dart';
-import 'package:tea/widgets/info_chip.dart';
 
 class TeaCard extends StatelessWidget {
   final TeaModel tea;
 
   const TeaCard({super.key, required this.tea});
+
+  // Метод для изменения яркости цвета
+  Color _getModifiedSecondaryColor(Color baseColor, double lightnessAdjustment) {
+    // Преобразуем цвет в HSL для изменения яркости
+    final hslColor = HSLColor.fromColor(baseColor);
+    final modifiedHsl = hslColor.withLightness(
+      (hslColor.lightness + lightnessAdjustment).clamp(0.0, 1.0),
+    );
+    return modifiedHsl.toColor();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +27,7 @@ class TeaCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: const Color(0xFF9B59B6).withOpacity(0.5), // Фиолетовая обводка
+          color: Theme.of(context).primaryColor.withOpacity(0.5), // Цвет текущей темы
           width: 2,
         ),
       ),
@@ -28,10 +37,7 @@ class TeaCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              const Color(0xFFF5F5F5),
-            ],
+            colors: [Colors.white, Theme.of(context).primaryColor.withOpacity(0.05)],
           ),
         ),
         child: InkWell(
@@ -46,10 +52,7 @@ class TeaCard extends StatelessWidget {
 
                   var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
 
-                  return SlideTransition(
-                    position: animation.drive(tween),
-                    child: child,
-                  );
+                  return SlideTransition(position: animation.drive(tween), child: child);
                 },
                 transitionDuration: const Duration(milliseconds: 300),
               ),
@@ -67,8 +70,8 @@ class TeaCard extends StatelessWidget {
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [
-                      const Color(0xFF9B59B6), // Фиолетовый
-                      const Color(0xFFFF69B4), // Розовый (неон)
+                      Theme.of(context).primaryColor, // Цвет текущей темы
+                      Theme.of(context).colorScheme.secondaryContainer, // Вторичный цвет
                     ],
                   ),
                 ),
@@ -76,11 +79,7 @@ class TeaCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Значок единорога
-                    Icon(
-                      Icons.auto_awesome, // Или другой символ, напоминающий единорога
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    Icon(Icons.auto_awesome, color: Colors.white, size: 20),
                     // Название чая
                     Expanded(
                       child: Text(
@@ -89,23 +88,13 @@ class TeaCard extends StatelessWidget {
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              offset: Offset(1, 1),
-                              blurRadius: 3,
-                              color: Colors.black45,
-                            ),
-                          ],
+                          shadows: [Shadow(offset: Offset(1, 1), blurRadius: 3, color: Colors.black45)],
                         ),
                         textAlign: TextAlign.center,
                       ),
                     ),
                     // Значок блёсток
-                    Icon(
-                      Icons.star,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    Icon(Icons.star, color: Colors.white, size: 20),
                   ],
                 ),
               ),
@@ -126,7 +115,7 @@ class TeaCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF69B4).withOpacity(0.3),
+                            color: Theme.of(context).primaryColor.withOpacity(0.3),
                             spreadRadius: 1,
                             blurRadius: 5,
                             offset: const Offset(0, 3),
@@ -143,10 +132,8 @@ class TeaCard extends StatelessWidget {
                                   color: Colors.grey[300],
                                   child: const Center(child: CircularProgressIndicator()),
                                 ),
-                                errorWidget: (context, url, error) => Container(
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.error),
-                                ),
+                                errorWidget: (context, url, error) =>
+                                    Container(color: Colors.grey[300], child: const Icon(Icons.error)),
                               )
                             : Image.asset(path, fit: BoxFit.cover),
                       ),
@@ -167,22 +154,18 @@ class TeaCard extends StatelessWidget {
                         if (tea.type != null)
                           Container(
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF9B59B6),
-                                  const Color(0xFF6C5CE7),
-                                ],
-                              ),
+                              color: Theme.of(context).colorScheme.secondary, // Насыщенный вторичный цвет без прозрачности
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               child: Text(
                                 tea.type!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
+                                  shadows: [Shadow(offset: Offset(1, 1), blurRadius: 1, color: Colors.black54)],
                                 ),
                               ),
                             ),
@@ -190,22 +173,18 @@ class TeaCard extends StatelessWidget {
                         if (tea.country != null)
                           Container(
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFFFF69B4),
-                                  const Color(0xFFE84393),
-                                ],
-                              ),
+                              color: _getModifiedSecondaryColor(Theme.of(context).colorScheme.secondary, 0.1).withOpacity(0.9), // Изменённый вторичный цвет с 90% непрозрачностью
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               child: Text(
                                 tea.country!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
+                                  shadows: [Shadow(offset: Offset(1, 1), blurRadius: 1, color: Colors.black54)],
                                 ),
                               ),
                             ),
@@ -246,41 +225,41 @@ class TeaCard extends StatelessWidget {
                                 spacing: 4,
                                 runSpacing: 4,
                                 children: [
-                                  ...List<Widget>.from(displayedFlavors.map((f) => Container(
+                                  ...List<Widget>.from(
+                                    displayedFlavors.map(
+                                      (f) => Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.purple[50],
+                                          color: Theme.of(context).primaryColor.withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(
-                                            color: const Color(0xFF9B59B6).withOpacity(0.3),
-                                          ),
+                                          border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
                                         ),
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           child: Text(
                                             "#$f",
                                             style: TextStyle(
-                                              color: Colors.purple[800],
+                                              color: Theme.of(context).primaryColor,
                                               fontSize: 11,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ),
-                                      ))),
+                                      ),
+                                    ),
+                                  ),
                                   if (extraCount > 0)
                                     Container(
                                       decoration: BoxDecoration(
-                                        color: Colors.pink[50],
+                                        color: Theme.of(context).primaryColor.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: const Color(0xFFFF69B4).withOpacity(0.3),
-                                        ),
+                                        border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         child: Text(
                                           "+$extraCount",
                                           style: TextStyle(
-                                            color: Colors.pink[700],
+                                            color: Theme.of(context).primaryColor,
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -298,20 +277,14 @@ class TeaCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.grey[300]!,
-                              ),
+                              border: Border.all(color: Colors.grey[300]!),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    Icons.scale,
-                                    size: 14,
-                                    color: Colors.grey[700],
-                                  ),
+                                  Icon(Icons.scale, size: 14, color: Colors.grey[700]),
                                   const SizedBox(width: 4),
                                   Text(
                                     "${tea.weight}",

@@ -32,6 +32,16 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
   );
   bool _isExpanded = true; // Флаг: развернута ли шапка
 
+  // Метод для изменения яркости цвета
+  Color _getModifiedSecondaryColor(Color baseColor, double lightnessAdjustment) {
+    // Преобразуем цвет в HSL для изменения яркости
+    final hslColor = HSLColor.fromColor(baseColor);
+    final modifiedHsl = hslColor.withLightness(
+      (hslColor.lightness + lightnessAdjustment).clamp(0.0, 1.0),
+    );
+    return modifiedHsl.toColor();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -103,7 +113,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
               expandedHeight: 350,
               pinned: true,
               automaticallyImplyLeading: true, // Показывает кнопку назад
-              backgroundColor: const Color(0xFF9B59B6), // Фиолетовый фон
+              backgroundColor: Theme.of(context).primaryColor, // Цвет темы
               actions: [
                 if (isConnected) // Показываем меню только при наличии интернета
                   PopupMenuButton(
@@ -153,20 +163,13 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                   ),
               ],
               flexibleSpace: FlexibleSpaceBar(
-                title: !_isExpanded ? Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: const Color(0xFFFF69B4).withOpacity(0.7), // Розовый полупрозрачный фон
+                title: !_isExpanded ? Text(
+                  _currentTea.name, // Показываем название чая только при закреплении
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    _currentTea.name, // Показываем название чая только при закреплении
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  overflow: TextOverflow.ellipsis,
                 ) : null,
                 background: Stack(
                   fit: StackFit.expand,
@@ -213,7 +216,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            const Color(0xFF9B59B6).withOpacity(0.8), // Фиолетовый полупрозрачный
+                            Theme.of(context).primaryColor.withOpacity(0.8), // Основной цвет темы
                           ],
                           stops: [0.7, 1.0],
                         ),
@@ -237,13 +240,13 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
             // 2. Контентная часть
             SliverToBoxAdapter(
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.white,
-                      Color(0xFFF8F6FF), // Светло-фиолетовый оттенок
+                      Theme.of(context).primaryColor.withOpacity(0.05), // Легкий оттенок основного цвета темы
                     ],
                   ),
                 ),
@@ -300,10 +303,10 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           if (_currentTea.weight != null && _currentTea.weight!.isNotEmpty)
                             Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFF69B4).withOpacity(0.1),
+                                color: Theme.of(context).primaryColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFFFF69B4),
+                                  color: Theme.of(context).primaryColor,
                                   width: 1,
                                 ),
                               ),
@@ -312,7 +315,10 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                                 "${_currentTea.weight}",
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.pink[700],
+                                  color: Color.alphaBlend(
+                                    Theme.of(context).primaryColor.withOpacity(0.7),
+                                    Colors.black,
+                                  ),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -321,43 +327,14 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Чипсы: Тип и Страна с новым дизайном
+                      // Чипсы: Тип и Страна с цветами как на главном экране
                       Wrap(
                         spacing: 8,
-                        runSpacing: 8,
                         children: [
-                          if (_currentTea.country != null)
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    const Color(0xFF6C5CE7), // Фиолетовый
-                                    const Color(0xFFA29BFE),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                child: Text(
-                                  _currentTea.country!,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
                           if (_currentTea.type != null)
                             Container(
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    const Color(0xFFFD79A8), // Розовый
-                                    const Color(0xFFFFDDF4),
-                                  ],
-                                ),
+                                color: Theme.of(context).colorScheme.secondary, // Насыщенный вторичный цвет без прозрачности
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Padding(
@@ -368,6 +345,38 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12,
+                                    shadows: [
+                                      Shadow(
+                                        offset: Offset(1, 1),
+                                        blurRadius: 1,
+                                        color: Colors.black54,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (_currentTea.country != null)
+                            Container(
+                              decoration: BoxDecoration(
+                                color: _getModifiedSecondaryColor(Theme.of(context).colorScheme.secondary, 0.1).withOpacity(0.9), // Изменённый вторичный цвет с 90% непрозрачностью
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                child: Text(
+                                  _currentTea.country!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                    shadows: [
+                                      Shadow(
+                                        offset: Offset(1, 1),
+                                        blurRadius: 1,
+                                        color: Colors.black54,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -404,10 +413,10 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           runSpacing: 8,
                           children: _currentTea.flavors.map((f) => Container(
                             decoration: BoxDecoration(
-                              color: Colors.purple[50],
+                              color: Theme.of(context).primaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: const Color(0xFF9B59B6).withOpacity(0.3),
+                                color: Theme.of(context).primaryColor.withOpacity(0.3),
                               ),
                             ),
                             child: Padding(
@@ -415,7 +424,7 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                               child: Text(
                                 f,
                                 style: TextStyle(
-                                  color: Colors.purple[700],
+                                  color: Theme.of(context).primaryColor,
                                   fontWeight: FontWeight.w500,
                                   fontSize: 12,
                                 ),
@@ -432,10 +441,10 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                           margin: const EdgeInsets.only(top: 24), // Отступ сверху, чтобы не прилипало
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEEDCF5).withOpacity(0.5), // Фиолетовый легкий фон
+                            color: Theme.of(context).primaryColor.withOpacity(0.1), // Цвет темы с прозрачностью
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFF9B59B6).withOpacity(0.3),
+                              color: Theme.of(context).primaryColor.withOpacity(0.3),
                               width: 1,
                             ),
                           ),
@@ -444,9 +453,9 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.local_cafe_outlined,
-                                    color: Color(0xFF9B59B6),
+                                    color: Theme.of(context).primaryColor,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 8),
@@ -471,10 +480,10 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF5F9).withOpacity(0.7), // Розовый легкий фон
+                            color: Theme.of(context).primaryColor.withOpacity(0.1), // Цвет темы с прозрачностью
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFFF69B4).withOpacity(0.3),
+                              color: Theme.of(context).primaryColor.withOpacity(0.3),
                               width: 1,
                             ),
                           ),

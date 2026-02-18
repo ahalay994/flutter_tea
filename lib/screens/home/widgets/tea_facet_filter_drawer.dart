@@ -166,13 +166,15 @@ class _TeaFacetFilterDrawerState extends ConsumerState<TeaFacetFilterDrawer> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16.0),
-            decoration: const BoxDecoration(
-              color: Colors.blue,
-              // ignore: deprecated_member_use
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.blue, Colors.blueAccent],
+                colors: [
+                  Theme.of(context).primaryColor,
+                  Theme.of(context).colorScheme.secondaryContainer,
+                ],
               ),
             ),
             child: const Column(
@@ -360,7 +362,7 @@ class _TeaFacetFilterDrawerState extends ConsumerState<TeaFacetFilterDrawer> {
                   child: ElevatedButton(
                     onPressed: _applyFilters,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -443,12 +445,19 @@ class _TeaFacetFilterDrawerState extends ConsumerState<TeaFacetFilterDrawer> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.blue.shade100 : Colors.grey.shade200,
+                      color: isSelected 
+                        ? Theme.of(context).primaryColor.withOpacity(0.1) 
+                        : Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       item.count.toString(),
-                      style: TextStyle(color: isSelected ? Colors.blue : Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                        color: isSelected 
+                          ? Theme.of(context).primaryColor 
+                          : Colors.grey, 
+                        fontSize: 12
+                      ),
                     ),
                   ),
                 ],

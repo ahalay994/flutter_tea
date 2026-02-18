@@ -11,10 +11,17 @@ class InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Chip(
       label: Text(label),
-      labelStyle: TextStyle(color: textColor ?? Colors.green[800], fontSize: 12, fontWeight: FontWeight.w500),
-      backgroundColor: backgroundColor ?? Colors.green[50],
-      side: BorderSide.none,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      labelStyle: TextStyle(
+        color: textColor ?? Theme.of(context).primaryColor, 
+        fontSize: 12, 
+        fontWeight: FontWeight.w500
+      ),
+      backgroundColor: backgroundColor ?? Theme.of(context).primaryColor.withOpacity(0.1),
+      side: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+      ),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.compact,
     );
