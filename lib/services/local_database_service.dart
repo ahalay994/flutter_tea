@@ -34,7 +34,7 @@ class LocalDatabaseService {
     String path = join(await getDatabasesPath(), 'tea_database.db');
     return await openDatabase(
       path,
-      version: 2, // Увеличиваем версию базы данных
+      version: 3, // Увеличиваем версию базы данных
       onCreate: _createDatabase,
       onUpgrade: _onUpgrade,
     );
@@ -115,6 +115,17 @@ class LocalDatabaseService {
         updatedAt TEXT
       )
     ''');
+    
+    // Таблица для хранения истории чата
+    await db.execute('''
+      CREATE TABLE chat_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        timestamp TEXT NOT NULL
+      )
+    ''');
   }
   
   // Метод для миграции базы данных
@@ -154,6 +165,19 @@ class LocalDatabaseService {
           name TEXT NOT NULL,
           createdAt TEXT,
           updatedAt TEXT
+        )
+      ''');
+    }
+    
+    // Если мигрируем с версии 2 на 3, добавляем таблицу истории чата
+    if (oldVersion < 3 && newVersion >= 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS chat_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          timestamp TEXT NOT NULL
         )
       ''');
     }
@@ -1102,6 +1126,125 @@ class LocalDatabaseService {
     }).toList();
   }
   
+  // Метод для сохранения сообщения чата
+  Future<void> saveChatMessage({
+    required String sessionId,
+    required String role,
+    required String content,
+    DateTime? timestamp,
+  }) async {
+    final now = timestamp ?? DateTime.now();
+    final timestampStr = now.toIso8601String();
+    
+    if (kIsWeb) {
+      // Для веба используем in-memory хранилище
+      final storage = _getWebStorage();
+      storage['chat_history'] ??= <Map<String, dynamic>>[];
+      
+      storage['chat_history'].add({
+        'id': storage['chat_history'].length + 1,
+        'session_id': sessionId,
+        'role': role,
+        'content': content,
+        'timestamp': timestampStr,
+      });
+    } else {
+      // Для мобильных/десктопных платформ используем SQLite
+      final db = await database;
+      await db.insert('chat_history', {
+        'session_id': sessionId,
+        'role': role,
+        'content': content,
+        'timestamp': timestampStr,
+      });
+    }
+  }
+
+  // Метод для получения истории чата для сессии
+  Future<List<Map<String, String>>> getChatHistory(String sessionId) async {
+    if (kIsWeb) {
+      // Для веба используем in-memory хранилище
+      final storage = _getWebStorage();
+      final chatHistory = storage['chat_history'] ?? <Map<String, dynamic>>[];
+      
+      return chatHistory
+          .where((item) => item['session_id'] == sessionId)
+          .map((item) => {
+            'role': item['role'] as String,
+            'content': item['content'] as String,
+          })
+          .toList()
+          .cast<Map<String, String>>();
+    } else {
+      // Для мобильных/десктопных платформ используем SQLite
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'chat_history',
+        where: 'session_id = ?',
+        orderBy: 'timestamp ASC',
+        whereArgs: [sessionId],
+      );
+      
+      return maps.map((map) => {
+        'role': map['role'] as String,
+        'content': map['content'] as String,
+      }).toList();
+    }
+  }
+
+  // Метод для получения списка сессий чата
+  Future<List<String>> getChatSessions() async {
+    if (kIsWeb) {
+      // Для веба используем in-memory хранилище
+      final storage = _getWebStorage();
+      final chatHistory = storage['chat_history'] ?? <Map<String, dynamic>>[];
+      
+      return chatHistory
+          .map((item) => item['session_id'] as String)
+          .toSet()
+          .toList();
+    } else {
+      // Для мобильных/десктопных платформ используем SQLite
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'chat_history',
+        columns: ['DISTINCT session_id'],
+      );
+      
+      return maps.map((map) => map['session_id'] as String).toList();
+    }
+  }
+
+  // Метод для очистки истории чата для сессии
+  Future<void> clearChatHistory(String sessionId) async {
+    if (kIsWeb) {
+      // Для веба используем in-memory хранилище
+      final storage = _getWebStorage();
+      storage['chat_history']?.removeWhere((item) => item['session_id'] == sessionId);
+    } else {
+      // Для мобильных/десктопных платформ используем SQLite
+      final db = await database;
+      await db.delete(
+        'chat_history',
+        where: 'session_id = ?',
+        whereArgs: [sessionId],
+      );
+    }
+  }
+
+  // Метод для очистки всех историй чата
+  Future<void> clearAllChatHistory() async {
+    if (kIsWeb) {
+      // Для веба используем in-memory хранилище
+      final storage = _getWebStorage();
+      storage['chat_history']?.clear();
+    } else {
+      // Для мобильных/десктопных платформ используем SQLite
+      final db = await database;
+      await db.delete('chat_history');
+    }
+  }
+
   // Методы для получения фасетов с подсчетом, учитывающих фильтры
   Future<List<Map<String, dynamic>>> getFilteredCountriesWithCount({
     String? searchQuery,

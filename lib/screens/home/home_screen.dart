@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tea/controllers/tea_controller.dart';
 import 'package:tea/models/tea.dart';
 import 'package:tea/screens/add/add_screen.dart';
+import 'package:tea/screens/chat/chat_screen.dart';
 import 'package:tea/utils/ui_helpers.dart';
 import 'package:tea/utils/app_config.dart';
 import 'package:tea/widgets/animated_loader.dart';
 import 'package:tea/utils/app_logger.dart';
 import 'package:tea/providers/connection_status_provider.dart';
 import 'package:tea/widgets/theme_selector_modal.dart';
+import '../chat/chat_screen.dart';
 
 import 'widgets/tea_card.dart';
 import 'widgets/tea_facet_filter_drawer.dart';
@@ -311,32 +313,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
               appBar: AppBar(
               title: Text(_getAppName()),
-              actions: [
-                // Кнопка выбора темы
-                IconButton(
-                  icon: const Icon(Icons.color_lens, color: Colors.white),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return const ThemeSelectorModal();
-                      },
-                    );
-                  },
-                ),
-                // Индикатор статуса подключения
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: isConnected 
-                      ? Icon(Icons.signal_cellular_alt, color: Colors.white)
-                      : Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.white),
-                ),
-              ],
               backgroundColor: Theme.of(context).primaryColor, // Используем текущую тему
-            ),
-          drawer: const TeaFacetFilterDrawer(),
-      body: Column(
-        children: [
+              actions: [
+                  // Показываем кнопку чата только если есть подключение к интернету
+                  ref.watch(connectionStatusProvider).when(
+                    data: (isConnected) => isConnected 
+                        ? IconButton(
+                            icon: const Icon(Icons.chat, color: Colors.white),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (context) => const ChatScreen()),
+                              );
+                            },
+                          )
+                        : const SizedBox(), // Скрываем кнопку, если нет подключения
+                    loading: () => const SizedBox(), // Скрываем кнопку во время проверки подключения
+                    error: (error, stack) => const SizedBox(), // Скрываем кнопку при ошибке проверки
+                  ),
+                  // Кнопка выбора темы
+                  IconButton(
+                    icon: const Icon(Icons.color_lens, color: Colors.white),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return const ThemeSelectorModal();
+                        },
+                      );
+                    },
+                  ),
+                  // Индикатор статуса подключения
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ref.watch(connectionStatusProvider).when(
+                      data: (isConnected) => isConnected 
+                          ? Icon(Icons.signal_cellular_alt, color: Colors.white)
+                          : Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.white),
+                      loading: () => Icon(Icons.hourglass_empty, color: Colors.white),
+                      error: (error, stack) => Icon(Icons.error, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ), // Закрытие AppBar
+            drawer: const TeaFacetFilterDrawer(),
+            body: Column(
+              children: [
           // Индикатор оффлайн режима - над шапкой списка
           if (!isConnected)
             Container(
