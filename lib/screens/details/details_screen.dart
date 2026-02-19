@@ -164,13 +164,16 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                   ),
               ],
               flexibleSpace: FlexibleSpaceBar(
-                title: !_isExpanded ? Text(
-                  _currentTea.name, // Показываем название чая только при закреплении
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                title: !_isExpanded ? Container(
+                  padding: const EdgeInsets.only(right: 50), // Добавляем отступ справа, чтобы название не перекрывало кнопку меню
+                  child: Text(
+                    _currentTea.name, // Показываем название чая только при закреплении
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ) : null,
                 background: Stack(
                   fit: StackFit.expand,
