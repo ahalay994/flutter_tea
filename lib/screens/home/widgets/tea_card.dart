@@ -100,54 +100,75 @@ class TeaCard extends StatelessWidget {
               ),
               // 1. Галерея
               AbsorbPointer(
-                child: CarouselSlider(
-                  options: CarouselOptions(
-                    height: 200.0,
-                    viewportFraction: 1.0,
-                    autoPlay: tea.images.length > 1,
-                    autoPlayCurve: Curves.easeInOut,
-                    autoPlayAnimationDuration: const Duration(seconds: 2),
-                  ),
-                  items: tea.images.map((path) {
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-                            spreadRadius: 1,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Container(
-                        color: Colors.grey[300], // фон, который будет виден, если изображение не заполняет полностью
-                        child: path.startsWith('http')
-                            ? CachedNetworkImage(
-                                imageUrl: path,
-                                width: double.infinity, // заполняет всю доступную ширину
-                                height: 200, // фиксированная высота
-                                fit: BoxFit.fitWidth, // заполняет ширину контейнера
-                                alignment: Alignment.center, // центрирует изображение по высоте
-                                placeholder: (context, url) => Container(
-                                  color: Colors.grey[300],
-                                  child: const Center(child: CircularProgressIndicator()),
+                child: tea.images.isNotEmpty
+                    ? CarouselSlider(
+                        options: CarouselOptions(
+                          height: 200.0,
+                          viewportFraction: 1.0,
+                          autoPlay: tea.images.length > 1,
+                          autoPlayCurve: Curves.easeInOut,
+                          autoPlayAnimationDuration: const Duration(seconds: 2),
+                        ),
+                        items: tea.images.map((path) {
+                          return Container(
+                            margin: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                                  spreadRadius: 1,
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 3),
                                 ),
-                                errorWidget: (context, url, error) =>
-                                    Container(color: Colors.grey[300], child: const Icon(Icons.error)),
-                              )
-                            : Image(
-                                image: AssetImage(path),
-                                width: double.infinity, // заполняет всю доступную ширину
-                                height: 200, // фиксированная высота
-                                fit: BoxFit.fitWidth, // заполняет ширину контейнера
-                                alignment: Alignment.center, // центрирует изображение по высоте
-                              ),
+                              ],
+                            ),
+                            child: Container(
+                              color: Colors.grey[300], // фон, который будет виден, если изображение не заполняет полностью
+                              child: path.startsWith('http')
+                                  ? CachedNetworkImage(
+                                      imageUrl: path,
+                                      width: double.infinity, // заполняет всю доступную ширину
+                                      height: 200, // фиксированная высота
+                                      fit: BoxFit.fitWidth, // заполняет ширину контейнера
+                                      alignment: Alignment.center, // центрирует изображение по высоте
+                                      placeholder: (context, url) => Container(
+                                        color: Colors.grey[300],
+                                        child: const Center(child: CircularProgressIndicator()),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Container(color: Colors.grey[300], child: const Icon(Icons.error)),
+                                    )
+                                  : Image(
+                                      image: AssetImage(path),
+                                      width: double.infinity, // заполняет всю доступную ширину
+                                      height: 200, // фиксированная высота
+                                      fit: BoxFit.fitWidth, // заполняет ширину контейнера
+                                      alignment: Alignment.center, // центрирует изображение по высоте
+                                    ),
+                            ),
+                          );
+                        }).toList(),
+                      )
+                    : Container(
+                        height: 200,
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
                       ),
-                    );
-                  }).toList(),
-                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(12.0),
