@@ -112,7 +112,6 @@ class TeaCard extends StatelessWidget {
                     return Container(
                       margin: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
                             color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
@@ -122,32 +121,29 @@ class TeaCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          color: Colors.grey[300], // фон, который будет виден, если изображение не заполняет полностью
-                          child: path.startsWith('http')
-                              ? CachedNetworkImage(
-                                  imageUrl: path,
-                                  width: double.infinity, // заполняет всю доступную ширину
-                                  height: 200, // фиксированная высота
-                                  fit: BoxFit.fitWidth, // заполняет ширину контейнера
-                                  alignment: Alignment.center, // центрирует изображение по высоте
-                                  placeholder: (context, url) => Container(
-                                    color: Colors.grey[300],
-                                    child: const Center(child: CircularProgressIndicator()),
-                                  ),
-                                  errorWidget: (context, url, error) =>
-                                      Container(color: Colors.grey[300], child: const Icon(Icons.error)),
-                                )
-                              : Image(
-                                  image: AssetImage(path),
-                                  width: double.infinity, // заполняет всю доступную ширину
-                                  height: 200, // фиксированная высота
-                                  fit: BoxFit.fitWidth, // заполняет ширину контейнера
-                                  alignment: Alignment.center, // центрирует изображение по высоте
+                      child: Container(
+                        color: Colors.grey[300], // фон, который будет виден, если изображение не заполняет полностью
+                        child: path.startsWith('http')
+                            ? CachedNetworkImage(
+                                imageUrl: path,
+                                width: double.infinity, // заполняет всю доступную ширину
+                                height: 200, // фиксированная высота
+                                fit: BoxFit.fitWidth, // заполняет ширину контейнера
+                                alignment: Alignment.center, // центрирует изображение по высоте
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[300],
+                                  child: const Center(child: CircularProgressIndicator()),
                                 ),
-                        ),
+                                errorWidget: (context, url, error) =>
+                                    Container(color: Colors.grey[300], child: const Icon(Icons.error)),
+                              )
+                            : Image(
+                                image: AssetImage(path),
+                                width: double.infinity, // заполняет всю доступную ширину
+                                height: 200, // фиксированная высота
+                                fit: BoxFit.fitWidth, // заполняет ширину контейнера
+                                alignment: Alignment.center, // центрирует изображение по высоте
+                              ),
                       ),
                     );
                   }).toList(),

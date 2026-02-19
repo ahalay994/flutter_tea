@@ -179,36 +179,43 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       itemCount: _currentTea.images.length,
                       itemBuilder: (context, index, realIndex) {
                         final path = _currentTea.images[index]; // Получаем путь по индексу
-                        return AbsorbPointer(
-                          absorbing: !_isExpanded, // Если шапка свернута, клики ПОГЛОЩАЮТСЯ
-                          child: GestureDetector(
-                            onTap: () => path.startsWith('http') ? _openGalleryModal(index) : () => {},
-                            child: Container(
-                              color: Colors.grey[300], // фон, который будет виден, если изображение не заполняет полностью
-                              child: path.startsWith('http')
-                                  ? CachedNetworkImage(
-                                      imageUrl: path,
-                                      width: double.infinity, // заполняет всю доступную ширину
-                                      height: 400, // фиксированная высота
-                                      fit: BoxFit.fitWidth, // заполняет ширину контейнера
-                                      alignment: Alignment.center, // центрирует изображение по высоте
-                                      placeholder: (context, url) => Container(
-                                        color: Colors.grey[300],
-                                        child: const Center(child: CircularProgressIndicator()),
-                                      ),
-                                      errorWidget: (context, url, error) => Container(
-                                        color: Colors.grey[300],
-                                        child: const Icon(Icons.error),
-                                      ),
-                                    )
-                                  : Image(
-                                      image: AssetImage(path),
-                                      width: double.infinity, // заполняет всю доступную ширину
-                                      height: 400, // фиксированная высота
-                                      fit: BoxFit.fitWidth, // заполняет ширину контейнера
-                                      alignment: Alignment.center, // центрирует изображение по высоте
+                        return GestureDetector(
+                          onTap: () {
+                            print('Клик по изображению: ${path.startsWith('http') ? 'сетевое' : 'локальное'}, isExpanded: $_isExpanded');
+                            if (path.startsWith('http') && _isExpanded) {
+                              print('Открываем галерею для изображения $index');
+                              _openGalleryModal(index);
+                            } else if (!path.startsWith('http')) {
+                              print('Локальное изображение - клик не обрабатывается');
+                            } else if (!_isExpanded) {
+                              print('Шапка свернута - клик не обрабатывается');
+                            }
+                          },
+                          child: Container(
+                            color: Colors.grey[300], // фон, который будет виден, если изображение не заполняет полностью
+                            child: path.startsWith('http')
+                                ? CachedNetworkImage(
+                                    imageUrl: path,
+                                    width: double.infinity, // заполняет всю доступную ширину
+                                    height: 400, // фиксированная высота
+                                    fit: BoxFit.fitWidth, // заполняет ширину контейнера
+                                    alignment: Alignment.center, // центрирует изображение по высоте
+                                    placeholder: (context, url) => Container(
+                                      color: Colors.grey[300],
+                                      child: const Center(child: CircularProgressIndicator()),
                                     ),
-                            ),
+                                    errorWidget: (context, url, error) => Container(
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.error),
+                                    ),
+                                  )
+                                : Image(
+                                    image: AssetImage(path),
+                                    width: double.infinity, // заполняет всю доступную ширину
+                                    height: 400, // фиксированная высота
+                                    fit: BoxFit.fitWidth, // заполняет ширину контейнера
+                                    alignment: Alignment.center, // центрирует изображение по высоте
+                                  ),
                           ),
                         );
                       },
@@ -223,16 +230,19 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                       ),
                     ),
                     // Градиент снизу, чтобы текст имени был читаем
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Theme.of(context).primaryColor.withValues(alpha: 0.8), // Основной цвет темы
-                          ],
-                          stops: [0.7, 1.0],
+                    IgnorePointer(
+                      ignoring: true,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Theme.of(context).primaryColor.withValues(alpha: 0.8), // Основной цвет темы
+                            ],
+                            stops: [0.7, 1.0],
+                          ),
                         ),
                       ),
                     ),
@@ -240,10 +250,13 @@ class _TeaDetailScreenState extends ConsumerState<TeaDetailScreen> {
                     Positioned(
                       top: 50,
                       right: 20,
-                      child: Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white.withValues(alpha: 0.8),
-                        size: 30,
+                      child: IgnorePointer(
+                        ignoring: true,
+                        child: Icon(
+                          Icons.auto_awesome,
+                          color: Colors.white.withValues(alpha: 0.8),
+                          size: 30,
+                        ),
                       ),
                     ),
                   ],

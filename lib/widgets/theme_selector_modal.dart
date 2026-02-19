@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tea/providers/theme_provider.dart';
 
@@ -24,7 +25,7 @@ class _ThemeSelectorModalState extends ConsumerState<ThemeSelectorModal> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Выберите цвета темы'),
+      title: const Text('Тема'),
       content: StatefulBuilder(
         builder: (context, setState) {
           return SizedBox(
@@ -33,8 +34,6 @@ class _ThemeSelectorModalState extends ConsumerState<ThemeSelectorModal> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Пользовательские цвета', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
@@ -107,10 +106,7 @@ class _ThemeSelectorModalState extends ConsumerState<ThemeSelectorModal> {
         },
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Отмена'),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Отмена')),
         TextButton(
           onPressed: () {
             ThemeManager().setCustomColors(_primaryColor, _secondaryColor);
@@ -123,84 +119,34 @@ class _ThemeSelectorModalState extends ConsumerState<ThemeSelectorModal> {
   }
 
   Future<Color?> _showColorPicker(BuildContext context, Color initialColor) async {
+    Color currentColor = initialColor;
+
     return showDialog<Color>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Выберите цвет'),
           content: SingleChildScrollView(
-            child: ColorPickerGrid(
-              selectedColor: initialColor,
+            child: ColorPicker(
+              pickerColor: currentColor,
               onColorChanged: (color) {
-                Navigator.of(context).pop(color);
+                currentColor = color;
               },
+              colorPickerWidth: 300,
+              pickerAreaHeightPercent: 0.7,
+              enableAlpha: false,
+              displayThumbColor: true,
+              showLabel: true,
+              paletteType: PaletteType.hsv,
+              pickerAreaBorderRadius: const BorderRadius.all(Radius.circular(8)),
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Отмена'),
-            ),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Отмена')),
+            TextButton(onPressed: () => Navigator.of(context).pop(currentColor), child: const Text('Выбрать')),
           ],
         );
       },
-    );
-  }
-}
-
-class ColorPickerGrid extends StatelessWidget {
-  final Color selectedColor;
-  final Function(Color) onColorChanged;
-
-  const ColorPickerGrid({
-    super.key,
-    required this.selectedColor,
-    required this.onColorChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Набор основных цветов
-    final colors = [
-      Colors.red,
-      Colors.pink,
-      Colors.purple,
-      Colors.deepPurple,
-      Colors.indigo,
-      Colors.blue,
-      Colors.lightBlue,
-      Colors.cyan,
-      Colors.teal,
-      Colors.green,
-      Colors.lightGreen,
-      Colors.lime,
-      Colors.yellow,
-      Colors.amber,
-      Colors.orange,
-      Colors.deepOrange,
-      Colors.brown,
-      Colors.grey,
-      Colors.blueGrey,
-    ];
-
-    return Wrap(
-      spacing: 8,
-      children: colors.map((color) {
-        return GestureDetector(
-          onTap: () => onColorChanged(color),
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: color.value == selectedColor.value
-                  ? Border.all(color: Colors.black, width: 2)
-                  : Border.all(color: Colors.transparent),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }
