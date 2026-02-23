@@ -184,12 +184,13 @@ Get teas with pagination and filtering.
 
 ---
 
-### GET `/api/tea/:id`
+### GET `/api/device-tea/:id`
 
-Get a single tea by ID.
+Get a single tea by ID with multi-tenancy support.
 
 **URL Parameter:**
 - `id` (number) - Tea ID
+- `deviceId` (string) - Device ID for multi-tenancy
 
 **Response:**
 ```json

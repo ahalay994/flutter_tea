@@ -183,8 +183,8 @@ class TeaApi extends Api {
   }
   
   // Метод для получения чая по ID
-  Future<TeaResponse> getTea(int teaId) async {
-    final response = await getRequest('/tea/$teaId');
+  Future<TeaResponse> getTea(int teaId, String deviceId) async {
+    final response = await getRequest('/device-tea/$teaId?deviceId=$deviceId');
     
     if (response.ok && response.data != null) {
       return TeaResponse.fromJson(response.data as Map<String, dynamic>);

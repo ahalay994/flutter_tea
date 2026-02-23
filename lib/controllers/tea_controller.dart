@@ -689,7 +689,8 @@ class TeaController {
               );      }
 
       // Если в локальной базе нет, получаем с API
-      final response = await _teaApi.getTea(id);
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      final response = await _teaApi.getTea(id, deviceId);
       final metadata = await _getMetadata();
       
       // Сохраняем в локальную базу
@@ -715,7 +716,8 @@ class TeaController {
   Future<TeaResponse> getTeaResponse(int id) async {
     try {
       // Получаем напрямую с API, чтобы получить полные данные изображений
-      final response = await _teaApi.getTea(id);
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      final response = await _teaApi.getTea(id, deviceId);
       return response;
     } catch (e, stack) {
       AppLogger.error('Ошибка при получении оригинального ответа чая', error: e, stackTrace: stack);
@@ -761,7 +763,7 @@ class TeaController {
       onSuccess(); // Инвалидируем список
       
       // После обновления получаем обновленный чай по ID
-      final updatedTea = await _teaApi.getTea(teaId);
+      final updatedTea = await _teaApi.getTea(teaId, deviceId);
       
       AppLogger.success('Чай "${dto.name}" успешно обновлён');
       return updatedTea;
