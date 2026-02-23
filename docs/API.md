@@ -135,9 +135,8 @@ Get teas with pagination and filtering.
 
 ---
 
-### GET `/api/tea/facets`
-
-Get facet filters with counts (excludes facets with 0 count).
+### GET `/api/device-tea/facets`
+Получение фасетов (количество чаёв по каждому фильтру) с поддержкой мульти-тенантности. Требует передачи deviceId в query параметрах.
 
 **Query Parameters:**
 - `search` (string) - Search filter

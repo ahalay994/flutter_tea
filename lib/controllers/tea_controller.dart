@@ -981,7 +981,8 @@ class TeaController {
     // Онлайн режим - получаем фасеты с сервера
     try {
       AppLogger.debug('Загрузка фасетов в онлайн-режиме');
-      final response = await _teaApi.getFacets(filterParams);
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      final response = await _teaApi.getFacets(filterParams, deviceId);
       return response;
     } catch (e, stack) {
       AppLogger.error('Ошибка при получении фасетов из API, переключаемся на оффлайн-режим', error: e, stackTrace: stack);

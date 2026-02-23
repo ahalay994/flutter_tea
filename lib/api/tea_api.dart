@@ -198,7 +198,7 @@ class TeaApi extends Api {
 
 // Метод для получения фасетов (количество чаёв по каждому фильтру)
 extension TeaApiFacets on TeaApi {
-  Future<FacetResponse> getFacets(Map<String, dynamic> filterParams) async {
+  Future<FacetResponse> getFacets(Map<String, dynamic> filterParams, String deviceId) async {
     // Формируем query параметры
     final queryParams = <String, String>{};
     
@@ -222,11 +222,14 @@ extension TeaApiFacets on TeaApi {
       queryParams['flavors'] = filterParams['flavors'].toString();
     }
     
+    // Добавляем deviceId
+    queryParams['deviceId'] = deviceId;
+    
     final queryString = queryParams.entries
         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
     
-    final response = await getRequest('/tea/facets${queryString.isNotEmpty ? '?$queryString' : ''}');
+    final response = await getRequest('/device-tea/facets${queryString.isNotEmpty ? '?$queryString' : ''}');
 
     if (response.ok && response.data != null) {
       return FacetResponse.fromJson(response.data as Map<String, dynamic>);
