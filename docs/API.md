@@ -56,9 +56,9 @@ Authentication endpoint to set the auth cookie.
 
 ---
 
-### GET `/api/tea`
+### GET `/api/device-tea`
 
-Get all teas with optional filtering (no pagination).
+Получение списка всех чаёв с поддержкой мульти-тенантности. Требует передачи deviceId в query параметрах.
 
 **Query Parameters:**
 - `search` (string) - Search in name, description, brewingGuide, temperature, weight

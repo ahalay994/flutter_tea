@@ -55,8 +55,8 @@ class PaginatedTeaResponse {
 }
 
 class TeaApi extends Api {
-  Future<List<TeaResponse>> getTeas() async {
-    final response = await getRequest('/tea');
+  Future<List<TeaResponse>> getTeas(String deviceId) async {
+    final response = await getRequest('/device-tea?deviceId=$deviceId');
 
     if (response.ok) {
       return (response.data as List).map((json) => TeaResponse.fromJson(json as Map<String, dynamic>)).toList();

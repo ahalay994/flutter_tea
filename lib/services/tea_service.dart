@@ -14,6 +14,7 @@ import 'package:tea_multitenant/api/tea_api.dart';
 import 'package:tea_multitenant/api/type_api.dart';
 import 'package:tea_multitenant/models/tea.dart';
 import 'package:tea_multitenant/providers/metadata_provider.dart';
+import 'package:tea_multitenant/services/device_service.dart';
 import 'package:tea_multitenant/utils/app_logger.dart';
 
 class TeaService {
@@ -22,18 +23,20 @@ class TeaService {
   final FlavorApi _flavorApi = FlavorApi();
   final TypeApi _typeApi = TypeApi();
   final TeaApi _teaApi = TeaApi();
+  final DeviceService _deviceService = DeviceService();
 
   Future<List<TeaModel>> fetchFullTeas(Ref ref) async {
     try {
       AppLogger.debug('Начинаем загрузку полных данных о чае');
 
       // Запускаем все запросы параллельно
+      final deviceId = await _deviceService.getOrRegisterDevice();
       final results = await Future.wait([
         _appearanceApi.getAppearances(),
         _countryApi.getCountries(),
         _flavorApi.getFlavors(),
         _typeApi.getTypes(),
-        _teaApi.getTeas(),
+        _teaApi.getTeas(deviceId),
       ]);
 
       AppLogger.debug('Получены все данные для формирования чая');
@@ -73,7 +76,8 @@ class TeaService {
       AppLogger.debug('Начинаем создание чая: ${dto.name}');
       AppLogger.debug('Количество изображений в DTO: ${dto.images.length}');
 
-      await _teaApi.saveTea(dto);
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      await _teaApi.saveTea(dto, deviceId);
       onSuccess();
 
       AppLogger.debug('Чай "${dto.name}" успешно создан');
