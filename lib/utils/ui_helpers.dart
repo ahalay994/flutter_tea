@@ -66,9 +66,9 @@ extension UiHelpers on BuildContext {
 
     _fullScreenLoaderEntry = OverlayEntry(
       builder: (context) => Container(
-        color: Colors.white.withValues(alpha: 0.8), // Прозрачный белый фон
+        color: Colors.black.withValues(alpha: 0.3),
         child: const Center(
-          child: AnimatedLoader(size: 100),
+          child: AnimatedLoader(size: 80),
         ),
       ),
     );

@@ -6,20 +6,21 @@ class AnimatedLoader extends StatelessWidget {
 
   const AnimatedLoader({
     super.key,
-    this.size = 100.0, // Увеличиваем размер по умолчанию
+    this.size = 50.0,
     this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
-      width: double.infinity, // Занимает всю ширину экрана
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: Image.asset(
-        'assets/images/loader.gif',
-        width: screenWidth, // Изображение занимает всю ширину экрана
-        fit: BoxFit.fitWidth, // Растягиваем изображение по ширине, высота автоматически рассчитывается пропорционально
+      width: size,
+      height: size,
+      padding: const EdgeInsets.all(16.0),
+      child: CircularProgressIndicator(
+        strokeWidth: 3.0,
+        valueColor: AlwaysStoppedAnimation<Color>(
+          color ?? Theme.of(context).primaryColor,
+        ),
       ),
     );
   }
@@ -43,9 +44,9 @@ class FullScreenLoader extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: Colors.white.withValues(alpha: 0.8), // Прозрачный белый фон
+            color: Colors.black.withValues(alpha: 0.3), // Полупрозрачный черный фон
             child: const Center(
-              child: AnimatedLoader(size: 100),
+              child: AnimatedLoader(size: 80),
             ),
           ),
       ],

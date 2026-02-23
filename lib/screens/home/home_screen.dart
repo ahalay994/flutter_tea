@@ -417,7 +417,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Expanded(
             child: _allTeas.isEmpty && _isLoadingMore
                 ? const Center(
-                    child: AnimatedLoader(size: 100),
+                    child: AnimatedLoader(size: 80),
                   )
                 : RefreshIndicator(
                     onRefresh: () async {
