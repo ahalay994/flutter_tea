@@ -10,66 +10,89 @@ import 'responses/api_response.dart';
 abstract class Api {
   String get _baseUrl {
     String? envValue = const String.fromEnvironment('API_URL', defaultValue: '');
-    if (envValue.isNotEmpty) return envValue;
+    if (envValue.isNotEmpty) {
+      AppLogger.debug('Базовый URL из переменной окружения: $envValue');
+      return envValue;
+    }
     
     try {
       // Пытаемся получить из dotenv, если доступно
       String? dotenvValue = dotenv.env['API_URL'];
-      return dotenvValue ?? AppConfig.apiUrl;
+      final baseUrl = dotenvValue ?? AppConfig.apiUrl;
+      AppLogger.debug('Базовый URL из .env или AppConfig: $baseUrl');
+      return baseUrl;
     } catch (e) {
       // Если возникла ошибка доступа к dotenv (например, в вебе), используем AppConfig
+      AppLogger.debug('Ошибка доступа к .env, используем AppConfig: ${AppConfig.apiUrl}');
       return AppConfig.apiUrl;
     }
   }
 
   // Базовый GET (ваш существующий)
   Future<ApiResponse> getRequest(String endpoint) async {
+    final fullUrl = '$_baseUrl$endpoint';
+    AppLogger.debug('GET запрос: $fullUrl');
+    
     try {
-      final response = await http.get(Uri.parse('$_baseUrl$endpoint'));
+      final response = await http.get(Uri.parse(fullUrl));
+      AppLogger.debug('Ответ: статус ${response.statusCode}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка GET запроса к $fullUrl: $e');
       return ApiResponse(ok: false, message: 'Ошибка сети: $e');
     }
   }
 
   // POST запрос для обычных данных (JSON)
   Future<ApiResponse> postRequest(String endpoint, Map<String, dynamic> data) async {
+    final fullUrl = '$_baseUrl$endpoint';
+    AppLogger.debug('POST запрос: $fullUrl с данными: ${json.encode(data)}');
+    
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl$endpoint'),
+        Uri.parse(fullUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(data),
       );
+      AppLogger.debug('Ответ POST: ${response.statusCode}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка POST запроса к $fullUrl: $e');
       return ApiResponse(ok: false, message: 'Ошибка запроса: $e');
     }
   }
 
   // PUT запрос для обновления данных (JSON)
   Future<ApiResponse> putRequest(String endpoint, Map<String, dynamic> data) async {
+    final fullUrl = '$_baseUrl$endpoint';
+    // Логируем отправляемые данные
+    AppLogger.debug('PUT запрос к $fullUrl с данными: ${json.encode(data)}');
+    
     try {
-      // Логируем отправляемые данные
-      AppLogger.debug('PUT запрос к $endpoint с данными: ${json.encode(data)}');
-      
       final response = await http.put(
-        Uri.parse('$_baseUrl$endpoint'),
+        Uri.parse(fullUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(data),
       );
       AppLogger.debug('Ответ сервера: ${response.statusCode}, тело: ${response.body}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка PUT запроса к $fullUrl: $e');
       return ApiResponse(ok: false, message: 'Ошибка запроса: $e');
     }
   }
 
   // DELETE запрос
   Future<ApiResponse> deleteRequest(String endpoint) async {
+    final fullUrl = '$_baseUrl$endpoint';
+    AppLogger.debug('DELETE запрос: $fullUrl');
+    
     try {
-      final response = await http.delete(Uri.parse('$_baseUrl$endpoint'));
+      final response = await http.delete(Uri.parse(fullUrl));
+      AppLogger.debug('Ответ DELETE: ${response.statusCode}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка DELETE запроса к $fullUrl: $e');
       return ApiResponse(ok: false, message: 'Ошибка запроса: $e');
     }
   }
@@ -80,8 +103,11 @@ abstract class Api {
     required Map<String, String> fields, // Сюда текстовые поля
     List<http.MultipartFile>? files, // Сюда подготовленные файлы
   }) async {
+    final fullUrl = '$_baseUrl$endpoint';
+    AppLogger.debug('Multipart POST запрос: $fullUrl с полями: $fields');
+    
     try {
-      final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl$endpoint'));
+      final request = http.MultipartRequest('POST', Uri.parse(fullUrl));
 
       // Добавляем текстовые поля
       request.fields.addAll(fields);
@@ -93,9 +119,12 @@ abstract class Api {
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
+      
+      AppLogger.debug('Ответ Multipart: ${response.statusCode}');
 
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка Multipart запроса к $fullUrl: $e');
       return ApiResponse(ok: false, message: 'Ошибка загрузки: $e');
     }
   }

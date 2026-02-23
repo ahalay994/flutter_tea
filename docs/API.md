@@ -103,7 +103,7 @@ Get all teas with optional filtering (no pagination).
 
 ---
 
-### GET `/api/tea/pagination`
+### GET `/api/device-tea/pagination`
 
 Get teas with pagination and filtering.
 

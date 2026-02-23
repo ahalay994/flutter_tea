@@ -22,6 +22,7 @@ class DeviceService {
     
     deviceId = await _registerDevice();
     await _storage.write(key: 'device_id', value: deviceId);
+    AppLogger.debug('Устройство зарегистрировано с ID: $deviceId');
     return deviceId;
   }
 

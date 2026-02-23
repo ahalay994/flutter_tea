@@ -105,7 +105,7 @@ class TeaApi extends Api {
   }
   
   // Метод для получения отфильтрованных чаёв с пагинацией
-  Future<PaginatedTeaResponse> getFilteredTeas(Map<String, dynamic> filterParams) async {
+  Future<PaginatedTeaResponse> getFilteredTeas(Map<String, dynamic> filterParams, String deviceId) async {
     // Формируем query параметры
     final queryParams = <String, String>{};
     
@@ -133,34 +133,52 @@ class TeaApi extends Api {
     queryParams['page'] = (filterParams['page'] ?? 1).toString();
     queryParams['perPage'] = (filterParams['perPage'] ?? 10).toString();
     
+    // Добавляем deviceId
+    queryParams['deviceId'] = deviceId;
+    
     final queryString = queryParams.entries
         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
     
-    final response = await getRequest('/tea/pagination${queryString.isNotEmpty ? '?$queryString' : ''}');
-
-    if (response.ok) {
-      // Если сервер возвращает объект с пагинацией
-      if (response.data is Map<String, dynamic>) {
-        return PaginatedTeaResponse.fromJson(response.data as Map<String, dynamic>);
-      } else if (response.data is List) {
-        // Если сервер возвращает просто список, создаем объект пагинации
-        final dataList = response.data as List;
-        final teas = dataList.map((item) => TeaResponse.fromJson(item as Map<String, dynamic>)).toList();
-        
-        return PaginatedTeaResponse(
-          data: teas,
-          currentPage: int.tryParse(queryParams['page'] ?? '1') ?? 1,
-          totalPages: 1, // Временно, пока не будет настоящей пагинации от сервера
-          perPage: int.tryParse(queryParams['perPage'] ?? '10') ?? 10,
-          hasMore: false, // Временно false
-          totalCount: teas.length, // Устанавливаем totalCount как длину списка
-        );
-      } else {
-        throw Exception("Неправильный формат данных");
+    // Логируем URL и параметры запроса
+    AppLogger.debug('Запрос к эндпоинту: /device-tea/pagination?$queryString');
+    AppLogger.debug('deviceId: $deviceId');
+    AppLogger.debug('Формируемый URL: /device-tea/pagination?$queryString');
+    
+    try {
+      final response = await getRequest('/device-tea/pagination?$queryString');
+      
+      AppLogger.debug('Ответ от сервера: ok=${response.ok}, message=${response.message}');
+      if (response.data != null) {
+        AppLogger.debug('Данные ответа: ${response.data}');
       }
-    } else {
-      throw Exception(response.message ?? "Ошибка при получении отфильтрованного списка чаёв");
+
+      if (response.ok) {
+        // Если сервер возвращает объект с пагинацией
+        if (response.data is Map<String, dynamic>) {
+          return PaginatedTeaResponse.fromJson(response.data as Map<String, dynamic>);
+        } else if (response.data is List) {
+          // Если сервер возвращает просто список, создаем объект пагинации
+          final dataList = response.data as List;
+          final teas = dataList.map((item) => TeaResponse.fromJson(item as Map<String, dynamic>)).toList();
+          
+          return PaginatedTeaResponse(
+            data: teas,
+            currentPage: int.tryParse(queryParams['page'] ?? '1') ?? 1,
+            totalPages: 1, // Временно, пока не будет настоящей пагинации от сервера
+            perPage: int.tryParse(queryParams['perPage'] ?? '10') ?? 10,
+            hasMore: false, // Временно false
+            totalCount: teas.length, // Устанавливаем totalCount как длину списка
+          );
+        } else {
+          throw Exception("Неправильный формат данных");
+        }
+      } else {
+        throw Exception(response.message ?? "Ошибка при получении отфильтрованного списка чаёв");
+      }
+    } catch (e) {
+      AppLogger.error('Ошибка при запросе к /device-tea/pagination: $e');
+      rethrow;
     }
   }
   

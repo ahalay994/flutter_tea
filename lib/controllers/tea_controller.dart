@@ -16,6 +16,7 @@ import 'package:tea_multitenant/api/responses/type_response.dart';
 import 'package:tea_multitenant/api/tea_api.dart';
 import 'package:tea_multitenant/api/type_api.dart';
 import 'package:tea_multitenant/models/tea.dart';
+import 'package:tea_multitenant/services/device_service.dart';
 import 'package:tea_multitenant/services/local_database_service.dart';
 import 'package:tea_multitenant/services/network_service.dart';
 import 'package:tea_multitenant/utils/app_logger.dart';
@@ -111,6 +112,7 @@ class TeaController {
   
   final LocalDatabaseService _localDatabase = LocalDatabaseService();
   final NetworkService _networkService = NetworkService();
+  final DeviceService _deviceService = DeviceService();
   
   // Для фоновой синхронизации
   Timer? _syncTimer;
@@ -257,7 +259,8 @@ class TeaController {
       await _localDatabase.clearAll();
       
       while (hasMore) {
-        final paginatedResponse = await _teaApi.getFilteredTeas({'page': page, 'perPage': 20});
+        final deviceId = await _deviceService.getOrRegisterDevice();
+        final paginatedResponse = await _teaApi.getFilteredTeas({'page': page, 'perPage': 20}, deviceId);
         
               // Сохраняем полученные данные в локальную базу
               for (final teaResponse in paginatedResponse.data) {
@@ -365,7 +368,8 @@ class TeaController {
     try {
       AppLogger.debug('Загрузка данных в онлайн-режиме (страница $page)');
       
-      final paginatedResponse = await _teaApi.getFilteredTeas({'page': page, 'perPage': perPage});
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      final paginatedResponse = await _teaApi.getFilteredTeas({'page': page, 'perPage': perPage}, deviceId);
       
       // Получаем метаданные для правильного преобразования
       final metadata = await _getMetadata();
@@ -559,7 +563,8 @@ class TeaController {
     try {
       AppLogger.debug('Загрузка отфильтрованных данных в онлайн-режиме');
       
-      final paginatedResponse = await _teaApi.getFilteredTeas(filterParams);
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      final paginatedResponse = await _teaApi.getFilteredTeas(filterParams, deviceId);
       
       // Получаем метаданные для правильного преобразования
       final metadata = await _getMetadata();
@@ -731,7 +736,8 @@ class TeaController {
       } else {
         // Если API не вернул созданный объект, получаем последний созданный чай для обновления UI
         // Это происходит, когда сервер возвращает статус 204 или пустой ответ после создания
-        final allTeasResponse = await _teaApi.getFilteredTeas({'page': 1, 'perPage': 1});
+        final deviceId = await _deviceService.getOrRegisterDevice();
+      final allTeasResponse = await _teaApi.getFilteredTeas({'page': 1, 'perPage': 1}, deviceId);
         if (allTeasResponse.data.isNotEmpty) {
           // Возвращаем самый последний чай из списка (предполагаем, что он только что созданный)
           return allTeasResponse.data.first;
