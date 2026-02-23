@@ -67,8 +67,8 @@ class TeaApi extends Api {
   
 
 
-  Future<List<TeaResponse>> saveTea(CreateTeaDto data) async {
-    final response = await postRequest('/tea', data.toJson());
+  Future<List<TeaResponse>> saveTea(CreateTeaDto data, String deviceId) async {
+    final response = await postRequest('/device-tea?deviceId=$deviceId', data.toJson());
 
     if (response.ok) {
       final rawData = response.data;

@@ -216,9 +216,8 @@ Get a single tea by ID.
 
 ---
 
-### POST `/api/tea`
-
-Create a new tea.
+### POST `/api/device-tea`
+Создание нового чая с поддержкой мульти-тенантности. Требует передачи deviceId в теле запроса.
 
 **Request Body:**
 ```json

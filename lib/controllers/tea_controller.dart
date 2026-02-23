@@ -727,7 +727,8 @@ class TeaController {
   Future<TeaResponse> createTeaWithResponse(CreateTeaDto dto, {required VoidCallback onSuccess}) async {
     if (await _networkService.checkConnection()) {
       // Онлайн режим - обычное создание
-      final response = await _teaApi.saveTea(dto);
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      final response = await _teaApi.saveTea(dto, deviceId);
       onSuccess(); // Инвалидируем список
       
       // Возвращаем первый элемент, если список не пустой
