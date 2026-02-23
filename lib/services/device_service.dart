@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -31,8 +32,22 @@ class DeviceService {
     final deviceToken = const Uuid().v4();
     final deviceName = await _getDeviceName();
 
-    AppLogger.debug('Текущий AppConfig.apiUrl: ${AppConfig.apiUrl}');
-    final url = '${AppConfig.apiUrl}/device/register';
+    // Используем обновленный AppConfig, который кеширует значение из .env
+    final apiUrl = AppConfig.apiUrl;
+    
+    AppLogger.debug('Текущий API URL: $apiUrl');
+    // Проверяем, что URL не пустой
+    if (apiUrl.isEmpty) {
+      AppLogger.error('API_URL не задан! Проверьте файл .env или переменные окружения');
+      throw Exception('API_URL не задан! Невозможно зарегистрировать устройство.');
+    }
+    
+    // Убедимся, что URL заканчивается на / если он не пустой
+    final normalizedBaseUrl = apiUrl.isNotEmpty && !apiUrl.endsWith('/')
+        ? '$apiUrl/'
+        : apiUrl;
+        
+    final url = '${normalizedBaseUrl}device/register';
     AppLogger.debug('Попытка регистрации устройства: $deviceName (token: $deviceToken)');
     AppLogger.debug('Полный URL регистрации: $url');
 

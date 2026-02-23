@@ -31,7 +31,7 @@ android {
         
         // Получаем APP_NAME из .env файла
         val envFile = File(rootProject.projectDir, ".env")
-        var appName = "Turbo Tea Multi-Tenant" // Значение по умолчанию
+        var appName = "Чайный каталог" // Значение по умолчанию
         if (envFile.exists()) {
             val envContents = envFile.readLines()
             val appNameLine = envContents.find { it.startsWith("APP_NAME=") }

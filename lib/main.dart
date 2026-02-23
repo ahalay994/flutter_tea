@@ -97,6 +97,9 @@ Future<void> main() async {
   // Загружаем .env файл асинхронно и безопасно
   await loadEnvSafely();
   
+  // Загружаем конфигурацию AppConfig для кеширования значений из .env
+  await AppConfig.loadConfig();
+  
   // Инициализируем менеджер тем
   await ThemeManager().initialize();
   
