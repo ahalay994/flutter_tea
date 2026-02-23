@@ -255,12 +255,13 @@ Get a single tea by ID.
 
 ---
 
-### PUT `/api/tea/:id`
+### PUT `/api/device-tea/:id`
 
-Update an existing tea.
+Update an existing tea with multi-tenancy support.
 
 **URL Parameter:**
 - `id` (number) - Tea ID
+- `deviceId` (string) - Device ID for multi-tenancy
 
 **Request Body:**
 ```json
@@ -309,12 +310,13 @@ Update an existing tea.
 
 ---
 
-### DELETE `/api/tea/:id`
+### DELETE `/api/device-tea/:id`
 
-Delete a tea by ID.
+Delete a tea by ID with multi-tenancy support.
 
 **URL Parameter:**
 - `id` (number) - Tea ID
+- `deviceId` (string) - Device ID for multi-tenancy
 
 **Response:**
 ```json

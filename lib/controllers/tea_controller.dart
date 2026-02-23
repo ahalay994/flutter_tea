@@ -756,7 +756,8 @@ class TeaController {
   Future<TeaResponse> updateTea(int teaId, CreateTeaDto dto, {required VoidCallback onSuccess}) async {
     if (await _networkService.checkConnection()) {
       // Онлайн режим - обычное обновление
-      await _teaApi.updateTea(teaId, dto);
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      await _teaApi.updateTea(teaId, dto, deviceId);
       onSuccess(); // Инвалидируем список
       
       // После обновления получаем обновленный чай по ID
@@ -774,7 +775,8 @@ class TeaController {
   Future<bool> deleteTea(int teaId, {required VoidCallback onSuccess}) async {
     if (await _networkService.checkConnection()) {
       // Онлайн режим - обычное удаление
-      final response = await _teaApi.deleteTea(teaId);
+      final deviceId = await _deviceService.getOrRegisterDevice();
+      final response = await _teaApi.deleteTea(teaId, deviceId);
       onSuccess(); // Инвалидируем список
       
       // Удаляем из локальной базы

@@ -86,8 +86,8 @@ class TeaApi extends Api {
   }
   
   // Новый метод для обновления чая
-  Future<void> updateTea(int teaId, CreateTeaDto data) async {
-    final response = await putRequest('/tea/$teaId', data.toJson());
+  Future<void> updateTea(int teaId, CreateTeaDto data, String deviceId) async {
+    final response = await putRequest('/device-tea/$teaId?deviceId=$deviceId', data.toJson());
     
     if (!response.ok) {
       // Выводим более подробную информацию об ошибке
@@ -99,8 +99,8 @@ class TeaApi extends Api {
     }
   }
   
-  Future<ApiResponse> deleteTea(int teaId) async {
-    final response = await deleteRequest('/tea/$teaId');
+  Future<ApiResponse> deleteTea(int teaId, String deviceId) async {
+    final response = await deleteRequest('/device-tea/$teaId?deviceId=$deviceId');
     return response;
   }
   
