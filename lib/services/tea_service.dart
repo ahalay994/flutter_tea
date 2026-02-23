@@ -1,20 +1,20 @@
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tea/api/appearance_api.dart';
-import 'package:tea/api/country_api.dart';
-import 'package:tea/api/dto/create_tea_dto.dart';
-import 'package:tea/api/flavor_api.dart';
-import 'package:tea/api/responses/appearance_response.dart';
-import 'package:tea/api/responses/country_response.dart';
-import 'package:tea/api/responses/flavor_response.dart';
-import 'package:tea/api/responses/tea_response.dart';
-import 'package:tea/api/responses/type_response.dart';
-import 'package:tea/api/tea_api.dart';
-import 'package:tea/api/type_api.dart';
-import 'package:tea/models/tea.dart';
-import 'package:tea/providers/metadata_provider.dart';
-import 'package:tea/utils/app_logger.dart';
+import 'package:tea_multitenant/api/appearance_api.dart';
+import 'package:tea_multitenant/api/country_api.dart';
+import 'package:tea_multitenant/api/dto/create_tea_dto.dart';
+import 'package:tea_multitenant/api/flavor_api.dart';
+import 'package:tea_multitenant/api/responses/appearance_response.dart';
+import 'package:tea_multitenant/api/responses/country_response.dart';
+import 'package:tea_multitenant/api/responses/flavor_response.dart';
+import 'package:tea_multitenant/api/responses/tea_response.dart';
+import 'package:tea_multitenant/api/responses/type_response.dart';
+import 'package:tea_multitenant/api/tea_api.dart';
+import 'package:tea_multitenant/api/type_api.dart';
+import 'package:tea_multitenant/models/tea.dart';
+import 'package:tea_multitenant/providers/metadata_provider.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
 
 class TeaService {
   final AppearanceApi _appearanceApi = AppearanceApi();

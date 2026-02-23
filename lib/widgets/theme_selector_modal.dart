@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tea/providers/theme_provider.dart';
+import 'package:tea_multitenant/providers/theme_provider.dart';
 
 class ThemeSelectorModal extends ConsumerStatefulWidget {
   const ThemeSelectorModal({super.key});

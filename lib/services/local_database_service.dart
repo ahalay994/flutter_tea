@@ -3,11 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:tea/models/tea.dart';
-import 'package:tea/api/responses/country_response.dart';
-import 'package:tea/api/responses/type_response.dart';
-import 'package:tea/api/responses/appearance_response.dart';
-import 'package:tea/api/responses/flavor_response.dart';
+import 'package:tea_multitenant/models/tea.dart';
+import 'package:tea_multitenant/api/responses/country_response.dart';
+import 'package:tea_multitenant/api/responses/type_response.dart';
+import 'package:tea_multitenant/api/responses/appearance_response.dart';
+import 'package:tea_multitenant/api/responses/flavor_response.dart';
 
 class LocalDatabaseService {
   static Database? _database;

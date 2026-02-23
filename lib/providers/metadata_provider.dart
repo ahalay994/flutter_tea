@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tea/api/responses/appearance_response.dart';
-import 'package:tea/api/responses/country_response.dart';
-import 'package:tea/api/responses/flavor_response.dart';
-import 'package:tea/api/responses/type_response.dart';
-import 'package:tea/controllers/tea_controller.dart';
+import 'package:tea_multitenant/api/responses/appearance_response.dart';
+import 'package:tea_multitenant/api/responses/country_response.dart';
+import 'package:tea_multitenant/api/responses/flavor_response.dart';
+import 'package:tea_multitenant/api/responses/type_response.dart';
+import 'package:tea_multitenant/controllers/tea_controller.dart';
 
 // Класс-хранилище всех справочников
 class TeaMetadata {

@@ -1,9 +1,9 @@
-import 'package:tea/api/responses/appearance_response.dart';
-import 'package:tea/api/responses/country_response.dart';
-import 'package:tea/api/responses/flavor_response.dart';
-import 'package:tea/api/responses/tea_response.dart';
-import 'package:tea/api/responses/type_response.dart';
-import 'package:tea/helpers/data_mapper.dart';
+import 'package:tea_multitenant/api/responses/appearance_response.dart';
+import 'package:tea_multitenant/api/responses/country_response.dart';
+import 'package:tea_multitenant/api/responses/flavor_response.dart';
+import 'package:tea_multitenant/api/responses/tea_response.dart';
+import 'package:tea_multitenant/api/responses/type_response.dart';
+import 'package:tea_multitenant/helpers/data_mapper.dart';
 
 class TeaModel {
   final int id;

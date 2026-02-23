@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tea/utils/app_config.dart';
-import 'package:tea/utils/app_logger.dart';
+import 'package:tea_multitenant/utils/app_config.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
 import 'package:image/image.dart' as img;
 
 class SupabaseService {

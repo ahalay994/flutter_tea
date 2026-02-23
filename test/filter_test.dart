@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tea/api/responses/country_response.dart';
-import 'package:tea/api/responses/type_response.dart';
-import 'package:tea/api/responses/appearance_response.dart';
-import 'package:tea/api/responses/flavor_response.dart';
-import 'package:tea/models/tea.dart';
+import 'package:tea_multitenant/api/responses/country_response.dart';
+import 'package:tea_multitenant/api/responses/type_response.dart';
+import 'package:tea_multitenant/api/responses/appearance_response.dart';
+import 'package:tea_multitenant/api/responses/flavor_response.dart';
+import 'package:tea_multitenant/models/tea.dart';
 
 void main() {
   group('Tea Model Filter Tests', () {

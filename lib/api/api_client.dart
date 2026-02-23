@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:tea/utils/app_config.dart';
-import 'package:tea/utils/app_logger.dart';
+import 'package:tea_multitenant/utils/app_config.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
 
 import 'responses/api_response.dart';
 

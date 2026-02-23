@@ -1,4 +1,4 @@
-import 'package:tea/api/responses/image_response.dart';
+import 'package:tea_multitenant/api/responses/image_response.dart';
 
 class CreateTeaDto {
   final String name;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tea/controllers/tea_controller.dart';
-import 'package:tea/utils/app_logger.dart';
+import 'package:tea_multitenant/controllers/tea_controller.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
 import 'filter_widgets.dart';
 
 class TeaFilterDrawer extends ConsumerStatefulWidget {

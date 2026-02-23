@@ -1,5 +1,5 @@
-import 'package:tea/models/image.dart';
-import 'package:tea/utils/json_utils.dart';
+import 'package:tea_multitenant/models/image.dart';
+import 'package:tea_multitenant/utils/json_utils.dart';
 
 class TeaResponse {
   final int id;

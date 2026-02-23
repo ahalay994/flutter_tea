@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:tea/models/tea.dart';
-import 'package:tea/screens/details/details_screen.dart';
+import 'package:tea_multitenant/models/tea.dart';
+import 'package:tea_multitenant/screens/details/details_screen.dart';
 
 class TeaCard extends StatelessWidget {
   final TeaModel tea;

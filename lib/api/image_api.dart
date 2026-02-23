@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tea/api/responses/image_response.dart';
-import 'package:tea/services/supabase_service.dart';
-import 'package:tea/utils/app_logger.dart';
+import 'package:tea_multitenant/api/responses/image_response.dart';
+import 'package:tea_multitenant/services/supabase_service.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
 
 final imageApiProvider = Provider((ref) => ImageApi());
 

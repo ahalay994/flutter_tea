@@ -1,9 +1,9 @@
-import 'package:tea/api/api_client.dart';
-import 'package:tea/api/dto/create_tea_dto.dart';
-import 'package:tea/api/responses/tea_response.dart';
-import 'package:tea/api/responses/api_response.dart';
-import 'package:tea/api/responses/facet_response.dart';
-import 'package:tea/utils/app_logger.dart';
+import 'package:tea_multitenant/api/api_client.dart';
+import 'package:tea_multitenant/api/dto/create_tea_dto.dart';
+import 'package:tea_multitenant/api/responses/tea_response.dart';
+import 'package:tea_multitenant/api/responses/api_response.dart';
+import 'package:tea_multitenant/api/responses/facet_response.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
 
 // Структура для ответа с пагинацией
 class PaginatedTeaResponse {

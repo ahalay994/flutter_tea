@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tea/widgets/animated_loader.dart';
+import 'package:tea_multitenant/widgets/animated_loader.dart';
 
 // Глобальная переменная для отслеживания активного OverlayEntry
 OverlayEntry? _fullScreenLoaderEntry;

@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:tea/utils/app_logger.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
 
 // Инициализация базы данных в зависимости от платформы
 Future<void> initializeDatabase() async {

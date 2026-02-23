@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.tea"
+    namespace = "com.example.tea_multitenant"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.tea"
+        applicationId = "com.example.tea_multitenant"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -31,7 +31,7 @@ android {
         
         // Получаем APP_NAME из .env файла
         val envFile = File(rootProject.projectDir, ".env")
-        var appName = "Tea App" // Значение по умолчанию
+        var appName = "Turbo Tea Multi-Tenant" // Значение по умолчанию
         if (envFile.exists()) {
             val envContents = envFile.readLines()
             val appNameLine = envContents.find { it.startsWith("APP_NAME=") }
@@ -47,7 +47,6 @@ android {
         }
         manifestPlaceholders["appName"] = appName
     }
-
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

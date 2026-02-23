@@ -1,4 +1,4 @@
-import 'package:tea/api/api_client.dart';
+import 'package:tea_multitenant/api/api_client.dart';
 
 import 'responses/country_response.dart';
 

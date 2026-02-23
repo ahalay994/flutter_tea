@@ -1,4 +1,4 @@
-import 'package:tea/utils/app_logger.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
 
 class JsonUtils {
   /// Универсальный метод для парсинга списков любого типа.

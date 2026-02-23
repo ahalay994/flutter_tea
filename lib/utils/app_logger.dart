@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:tea/utils/app_config.dart';
+import 'package:tea_multitenant/utils/app_config.dart';
 
 class AppLogger {
   // Используем AppConfig в качестве резервного варианта и избегаем обращения к dotenv при инициализации

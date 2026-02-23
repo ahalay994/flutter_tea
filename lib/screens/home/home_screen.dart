@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tea/controllers/tea_controller.dart';
-import 'package:tea/models/tea.dart';
-import 'package:tea/screens/add/add_screen.dart';
-import 'package:tea/screens/chat/chat_screen.dart';
-import 'package:tea/utils/ui_helpers.dart';
-import 'package:tea/utils/app_config.dart';
-import 'package:tea/widgets/animated_loader.dart';
-import 'package:tea/utils/app_logger.dart';
-import 'package:tea/providers/connection_status_provider.dart';
-import 'package:tea/widgets/theme_selector_modal.dart';
+import 'package:tea_multitenant/controllers/tea_controller.dart';
+import 'package:tea_multitenant/models/tea.dart';
+import 'package:tea_multitenant/screens/add/add_screen.dart';
+import 'package:tea_multitenant/screens/chat/chat_screen.dart';
+import 'package:tea_multitenant/utils/ui_helpers.dart';
+import 'package:tea_multitenant/utils/app_config.dart';
+import 'package:tea_multitenant/widgets/animated_loader.dart';
+import 'package:tea_multitenant/utils/app_logger.dart';
+import 'package:tea_multitenant/providers/connection_status_provider.dart';
+import 'package:tea_multitenant/widgets/theme_selector_modal.dart';
 import '../chat/chat_screen.dart';
 
 import 'widgets/tea_card.dart';

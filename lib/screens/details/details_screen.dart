@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:tea/controllers/tea_controller.dart';
-import 'package:tea/models/tea.dart';
-import 'package:tea/screens/edit/edit_screen.dart';
-import 'package:tea/utils/ui_helpers.dart';
-import 'package:tea/widgets/image_gallery_view.dart';
-import 'package:tea/widgets/info_chip.dart';
+import 'package:tea_multitenant/controllers/tea_controller.dart';
+import 'package:tea_multitenant/models/tea.dart';
+import 'package:tea_multitenant/screens/edit/edit_screen.dart';
+import 'package:tea_multitenant/utils/ui_helpers.dart';
+import 'package:tea_multitenant/widgets/image_gallery_view.dart';
+import 'package:tea_multitenant/widgets/info_chip.dart';
 
 import 'widgets/feature_row.dart';
 import 'widgets/flavor_tag.dart';
