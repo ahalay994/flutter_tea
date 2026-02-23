@@ -65,43 +65,7 @@ class TeaApi extends Api {
     }
   }
   
-  // Метод для получения чаёв с пагинацией
-  Future<PaginatedTeaResponse> getTeasPaginated({int page = 1, int perPage = 10}) async {
-    // Формируем query параметры для пагинации
-    final queryString = 'page=$page&perPage=$perPage';
-    final response = await getRequest('/tea/pagination?$queryString');
 
-    if (response.ok) {
-      // Если сервер возвращает объект с пагинацией
-      if (response.data is Map<String, dynamic>) {
-        try {
-          return PaginatedTeaResponse.fromJson(response.data as Map<String, dynamic>);
-        } catch (e) {
-          // Если не удалось распарсить как PaginatedTeaResponse, обрабатываем как просто список
-          AppLogger.debug('Не удалось распарсить ответ как PaginatedTeaResponse: $e');
-        }
-      }
-      
-      // Если сервер возвращает просто список, оборачиваем его в объект пагинации
-      if (response.data is List) {
-        final dataList = response.data as List;
-        final teas = dataList.map((item) => TeaResponse.fromJson(item as Map<String, dynamic>)).toList();
-        
-        return PaginatedTeaResponse(
-          data: teas,
-          currentPage: page,
-          totalPages: 1, // Временно устанавливаем 1, пока не будет настоящей пагинации
-          perPage: perPage,
-          hasMore: false, // Временно false
-          totalCount: teas.length, // Устанавливаем totalCount как длину списка
-        );
-      }
-      
-      throw Exception("Неправильный формат данных");
-    } else {
-      throw Exception(response.message ?? "Ошибка при получении списка чаёв с пагинацией");
-    }
-  }
 
   Future<List<TeaResponse>> saveTea(CreateTeaDto data) async {
     final response = await postRequest('/tea', data.toJson());

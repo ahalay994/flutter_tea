@@ -257,7 +257,7 @@ class TeaController {
       await _localDatabase.clearAll();
       
       while (hasMore) {
-        final paginatedResponse = await _teaApi.getTeasPaginated(page: page, perPage: 20);
+        final paginatedResponse = await _teaApi.getFilteredTeas({'page': page, 'perPage': 20});
         
               // Сохраняем полученные данные в локальную базу
               for (final teaResponse in paginatedResponse.data) {
@@ -365,7 +365,7 @@ class TeaController {
     try {
       AppLogger.debug('Загрузка данных в онлайн-режиме (страница $page)');
       
-      final paginatedResponse = await _teaApi.getTeasPaginated(page: page, perPage: perPage);
+      final paginatedResponse = await _teaApi.getFilteredTeas({'page': page, 'perPage': perPage});
       
       // Получаем метаданные для правильного преобразования
       final metadata = await _getMetadata();
@@ -731,7 +731,7 @@ class TeaController {
       } else {
         // Если API не вернул созданный объект, получаем последний созданный чай для обновления UI
         // Это происходит, когда сервер возвращает статус 204 или пустой ответ после создания
-        final allTeasResponse = await _teaApi.getTeasPaginated(page: 1, perPage: 1);
+        final allTeasResponse = await _teaApi.getFilteredTeas({'page': 1, 'perPage': 1});
         if (allTeasResponse.data.isNotEmpty) {
           // Возвращаем самый последний чай из списка (предполагаем, что он только что созданный)
           return allTeasResponse.data.first;
