@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 class RichEditor extends StatelessWidget {
@@ -10,7 +9,7 @@ class RichEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 150,
+      height: 300,
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey.shade300),
@@ -54,8 +53,6 @@ class RichEditor extends StatelessWidget {
                       controller.formatSelection(quill.Attribute.ol);
                     },
                   ),
-
-
                 ],
               ),
             ),
