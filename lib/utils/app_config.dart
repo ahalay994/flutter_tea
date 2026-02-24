@@ -1,28 +1,34 @@
 class AppConfig {
-  // Значения по умолчанию (все пустые для безопасности)
+  // Значения по умолчанию, соответствующие .env файлу
   static const String defaultApiUrl = '';
   static const String defaultSupabaseUrl = '';
   static const String defaultAppName = 'Tea App';
   static const String defaultSupabaseKey = ''; // Не храните реальные ключи в коде!
-  
+
+  // Вспомогательная функция для получения строки из окружения с резервным значением
+  static String _getStringFromEnv(String key, String defaultValue) {
+    try {
+      String? envValue = String.fromEnvironment(key, defaultValue: '');
+      return envValue.isNotEmpty ? envValue : defaultValue;
+    } catch (e) {
+      // Если возникла ошибка при получении переменной из окружения, используем значение по умолчанию
+      return defaultValue;
+    }
+  }
+
   static String get apiUrl {
-    String? envValue = const String.fromEnvironment('API_URL', defaultValue: '');
-    return envValue.isNotEmpty ? envValue : defaultApiUrl;
+    return _getStringFromEnv('API_URL', defaultApiUrl);
   }
-  
+
   static String get supabaseUrl {
-    String? envValue = const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-    return envValue.isNotEmpty ? envValue : defaultSupabaseUrl;
+    return _getStringFromEnv('SUPABASE_URL', defaultSupabaseUrl);
   }
-  
+
   static String get supabaseKey {
-    String? envValue = const String.fromEnvironment('SUPABASE_KEY', defaultValue: '');
-    // Возвращаем пустую строку по умолчанию, чтобы избежать утечки ключа
-    return envValue.isNotEmpty ? envValue : defaultSupabaseKey;
+    return _getStringFromEnv('SUPABASE_KEY', defaultSupabaseKey);
   }
-  
+
   static String get appName {
-    String? envValue = const String.fromEnvironment('APP_NAME', defaultValue: '');
-    return envValue.isNotEmpty ? envValue : defaultAppName;
+    return _getStringFromEnv('APP_NAME', defaultAppName);
   }
 }

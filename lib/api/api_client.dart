@@ -9,25 +9,40 @@ import 'responses/api_response.dart';
 
 abstract class Api {
   String get _baseUrl {
-    String? envValue = const String.fromEnvironment('API_URL', defaultValue: '');
-    if (envValue.isNotEmpty) return envValue;
-    
-    try {
-      // Пытаемся получить из dotenv, если доступно
-      String? dotenvValue = dotenv.env['API_URL'];
-      return dotenvValue ?? AppConfig.apiUrl;
-    } catch (e) {
-      // Если возникла ошибка доступа к dotenv (например, в вебе), используем AppConfig
-      return AppConfig.apiUrl;
+    // Проверяем переменные окружения Dart в первую очередь
+    String? envValue = String.fromEnvironment('API_URL', defaultValue: '');
+    if (envValue.isNotEmpty) {
+      AppLogger.debug('Используем API_URL из String.fromEnvironment: $envValue');
+      return envValue;
     }
+    
+    // Затем пробуем получить из flutter_dotenv
+    try {
+      String? dotenvValue = dotenv.env['API_URL'];
+      if (dotenvValue != null && dotenvValue.isNotEmpty) {
+        AppLogger.debug('Используем API_URL из dotenv: $dotenvValue');
+        return dotenvValue;
+      }
+    } catch (e) {
+      AppLogger.debug('Ошибка получения API_URL из dotenv: $e');
+      // Если возникла ошибка доступа к dotenv, продолжаем
+    }
+    
+    // Наконец, используем AppConfig
+    String fallbackUrl = AppConfig.apiUrl;
+    AppLogger.debug('Используем API_URL из AppConfig: $fallbackUrl');
+    return fallbackUrl;
   }
 
   // Базовый GET (ваш существующий)
   Future<ApiResponse> getRequest(String endpoint) async {
     try {
+      AppLogger.debug('Выполняем GET запрос: $_baseUrl$endpoint');
       final response = await http.get(Uri.parse('$_baseUrl$endpoint'));
+      AppLogger.debug('Получен ответ: ${response.statusCode}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка GET запроса к $_baseUrl$endpoint', error: e);
       return ApiResponse(ok: false, message: 'Ошибка сети: $e');
     }
   }
@@ -35,13 +50,16 @@ abstract class Api {
   // POST запрос для обычных данных (JSON)
   Future<ApiResponse> postRequest(String endpoint, Map<String, dynamic> data) async {
     try {
+      AppLogger.debug('Выполняем POST запрос: $_baseUrl$endpoint');
       final response = await http.post(
         Uri.parse('$_baseUrl$endpoint'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(data),
       );
+      AppLogger.debug('Получен ответ: ${response.statusCode}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка POST запроса к $_baseUrl$endpoint', error: e);
       return ApiResponse(ok: false, message: 'Ошибка запроса: $e');
     }
   }
@@ -60,6 +78,7 @@ abstract class Api {
       AppLogger.debug('Ответ сервера: ${response.statusCode}, тело: ${response.body}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка PUT запроса к $_baseUrl$endpoint', error: e);
       return ApiResponse(ok: false, message: 'Ошибка запроса: $e');
     }
   }
@@ -67,9 +86,12 @@ abstract class Api {
   // DELETE запрос
   Future<ApiResponse> deleteRequest(String endpoint) async {
     try {
+      AppLogger.debug('Выполняем DELETE запрос: $_baseUrl$endpoint');
       final response = await http.delete(Uri.parse('$_baseUrl$endpoint'));
+      AppLogger.debug('Получен ответ: ${response.statusCode}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка DELETE запроса к $_baseUrl$endpoint', error: e);
       return ApiResponse(ok: false, message: 'Ошибка запроса: $e');
     }
   }
@@ -81,6 +103,7 @@ abstract class Api {
     List<http.MultipartFile>? files, // Сюда подготовленные файлы
   }) async {
     try {
+      AppLogger.debug('Выполняем POST multipart запрос: $_baseUrl$endpoint');
       final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl$endpoint'));
 
       // Добавляем текстовые поля
@@ -94,14 +117,18 @@ abstract class Api {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
+      AppLogger.debug('Получен ответ: ${response.statusCode}');
       return _processResponse(response);
     } catch (e) {
+      AppLogger.error('Ошибка POST multipart запроса к $_baseUrl$endpoint', error: e);
       return ApiResponse(ok: false, message: 'Ошибка загрузки: $e');
     }
   }
 
   // Общий метод обработки ответа, чтобы не дублировать код
   ApiResponse _processResponse(http.Response response) {
+    AppLogger.debug('Обработка ответа: статус ${response.statusCode}, тело: ${response.body}');
+    
     try {
       final decoded = json.decode(utf8.decode(response.bodyBytes));
       
@@ -110,6 +137,10 @@ abstract class Api {
         final ok = decoded['ok'] as bool? ?? (response.statusCode >= 200 && response.statusCode < 300);
         final message = decoded['message'] as String? ?? (ok ? 'Успешно' : 'Ошибка сервера: ${response.statusCode}');
         final data = decoded['data'];
+        
+        if (!ok) {
+          AppLogger.error('Ответ сервера содержит ошибку: $message');
+        }
         
         return ApiResponse(ok: ok, message: message, data: data);
       } else {
@@ -120,11 +151,14 @@ abstract class Api {
           }
           return ApiResponse(ok: response.statusCode >= 200 && response.statusCode < 300, message: 'Ответ сервера', data: response.body);
         } else {
+          AppLogger.error('Ошибка сервера: ${response.statusCode}, тело: ${response.body}');
           return ApiResponse(ok: false, message: 'Ошибка сервера: ${response.statusCode}', data: response.body);
         }
       }
     } catch (e) {
       // Если не удается распарсить JSON, используем статус код
+      AppLogger.error('Ошибка парсинга JSON ответа: $e');
+      
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (response.statusCode == 204) {
           return ApiResponse(ok: true, message: 'Успешно', data: null);

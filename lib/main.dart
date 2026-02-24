@@ -18,6 +18,7 @@ import 'providers/theme_provider.dart';
 import 'screens/home/home_screen.dart';
 import 'services/supabase_service.dart';
 import 'utils/app_config.dart';
+import 'utils/app_logger.dart';
 
 // Глобальная переменная для хранения контекста главного виджета
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -28,27 +29,14 @@ Map<String, String> _envVariables = {};
 // Утилита для безопасной загрузки .env файла
 Future<void> loadEnvSafely() async {
   try {
-    // Сначала пробуем загрузить .env файл как ассет (работает в релизных сборках)
+    // Пробуем загрузить .env файл как ассет (работает в релизных сборках)
     String envContent = await rootBundle.loadString('.env');
     _envVariables = _parseEnvString(envContent);
-    await dotenv.load(fileName: ".env"); // Попробуем также загрузить как обычный файл на всякий случай
+    AppLogger.debug('Загружен .env файл как ассет, переменных: ${_envVariables.length}');
     // _showToast('Загружен .env файл как ассет');
   } catch (e) {
-    // _showToast('Не удалось загрузить .env файл как ассет: $e');
-    try {
-      // Если не удалось как ассет, пробуем загрузить как обычный файл
-      if (Platform.environment.containsKey('FLUTTER_WEB')) {
-        // Для веба не пытаемся загрузить .env файл через flutter_dotenv
-        // _showToast('Запуск в веб-окружении, используем переменные окружения Dart');
-      } else {
-        // На мобильных и десктопных платформах пробуем загрузить .env файл
-        await dotenv.load(fileName: ".env");
-        // _showToast('Загружен .env файл как обычный файл');
-      }
-    } catch (e2) {
-      // _showToast('Не удалось загрузить .env файл как обычный файл: $e2');
-      // _showToast('Приложение будет использовать значения по умолчанию из AppConfig');
-    }
+    AppLogger.debug('Не удалось загрузить .env файл как ассет: $e');
+    // Просто продолжаем без env переменных, используя AppConfig
   }
 }
 
@@ -81,21 +69,48 @@ Map<String, String> _parseEnvString(String envContent) {
 
 // Вспомогательная функция для получения значения из .env
 String? _getEnvValue(String key) {
-  // Сначала пробуем получить из flutter_dotenv
-  try {
-    return dotenv.env[key];
-  } catch (e) {
-    // Если не удалось, пробуем получить из нашего парсера
-    return _envVariables[key];
+  // Проверяем в следующем порядке приоритета:
+  // 1. Переменная окружения Dart (для релизной сборки)
+  String? envValue = String.fromEnvironment(key, defaultValue: '');
+  if (envValue.isNotEmpty) {
+    AppLogger.debug('Получено значение $key из String.fromEnvironment: $envValue');
+    return envValue;
   }
+  
+  // 2. Переменная из flutter_dotenv
+  try {
+    String? dotenvValue = dotenv.env[key];
+    if (dotenvValue != null && dotenvValue.isNotEmpty) {
+      AppLogger.debug('Получено значение $key из dotenv: $dotenvValue');
+      return dotenvValue;
+    }
+  } catch (e) {
+    AppLogger.debug('Ошибка получения $key из dotenv: $e');
+    // Если не удалось получить из flutter_dotenv, продолжаем
+  }
+  
+  // 3. Переменная из нашего внутреннего парсера
+  String? parsedValue = _envVariables[key];
+  if (parsedValue != null && parsedValue.isNotEmpty) {
+    AppLogger.debug('Получено значение $key из внутреннего парсера: $parsedValue');
+  }
+  return parsedValue;
 }
 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Включаем логирование в релизе
+  AppLogger.setReleaseLogging(true);
+  
   // Загружаем .env файл асинхронно и безопасно
   await loadEnvSafely();
+  
+  // Логируем значения, полученные из .env
+  AppLogger.debug('API_URL из .env: ${_getEnvValue('API_URL')}');
+  AppLogger.debug('SUPABASE_URL из .env: ${_getEnvValue('SUPABASE_URL')}');
+  AppLogger.debug('APP_NAME из .env: ${_getEnvValue('APP_NAME')}');
   
   // Инициализируем менеджер тем
   await ThemeManager().initialize();
@@ -108,6 +123,7 @@ Future<void> main() async {
     envSupabaseUrl = _getEnvValue('SUPABASE_URL');
     envSupabaseKey = _getEnvValue('SUPABASE_KEY');
   } catch (e) {
+    AppLogger.debug('Ошибка получения переменных Supabase: $e');
     // Если возникла ошибка доступа к dotenv (например, в вебе), используем только AppConfig
     envSupabaseUrl = null;
     envSupabaseKey = null;
@@ -116,17 +132,20 @@ Future<void> main() async {
   String supabaseUrl = envSupabaseUrl ?? AppConfig.supabaseUrl;
   String supabaseKey = envSupabaseKey ?? AppConfig.supabaseKey;
   
+  AppLogger.debug('Финальный SUPABASE_URL: $supabaseUrl');
+  AppLogger.debug('Финальный SUPABASE_KEY длина: ${supabaseKey.length}');
+  
   if (supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty) {
     // Инициализируем Supabase в фоне, чтобы не блокировать запуск приложения
     Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey).then((_) {
       SupabaseService().init(supabaseUrl, supabaseKey);
-      // _showToast('Supabase инициализирован успешно');
+      AppLogger.debug('Supabase инициализирован успешно');
     }).catchError((error) {
-      // _showToast('Ошибка инициализации Supabase: $error');
+      AppLogger.error('Ошибка инициализации Supabase:', error: error);
     });
   } else {
-    // _showToast('Не удалось получить настройки Supabase, инициализация не выполнена');
-    // _showToast('Убедитесь, что в .env файле указаны правильные значения SUPABASE_URL и SUPABASE_KEY');
+    AppLogger.error('Не удалось получить настройки Supabase, инициализация не выполнена');
+    AppLogger.error('Убедитесь, что в .env файле указаны правильные значения SUPABASE_URL и SUPABASE_KEY');
   }
 
   runApp(ProviderScope(child: TeaApp(navigatorKey: navigatorKey)));

@@ -22,6 +22,9 @@ class AppLogger {
     }
   }
 
+  // Флаг для включения логирования в релизе
+  static bool _enableReleaseLogging = true;
+
   // Метод для записи лога в файл
   static Future<void> _writeToFile(String level, String message, {Object? error}) async {
     // 1. ПРОВЕРКА НА WEB: В браузере запись в файлы невозможна
@@ -43,31 +46,34 @@ class AppLogger {
 
   // Лог ошибки
   static void error(String message, {Object? error, StackTrace? stackTrace}) {
-    if (kDebugMode) {
-      dev.log('❌ $message', name: _tag, error: error, stackTrace: stackTrace);
-      // debugPrint('[$_tag] ❌ ERROR: $message ${error ?? ''}');
-    }
-
-    // Запись в файл (пропустится автоматически, если это Web)
+    // Всегда записываем ошибки в файл, независимо от режима
     _writeToFile('ERROR', message, error: error);
+    
+    if (kDebugMode || _enableReleaseLogging) {
+      dev.log('❌ $message', name: _tag, error: error, stackTrace: stackTrace);
+    }
   }
 
   // Лог информационной отладки
   static void debug(String message) {
-    if (kDebugMode) {
+    if (kDebugMode || _enableReleaseLogging) {
       dev.log('ℹ️ $message', name: _tag);
-      // debugPrint('[$_tag] ℹ️ DEBUG: $message');
+      // Записываем в файл только если включен релизный лог
+      if (_enableReleaseLogging) {
+        _writeToFile('DEBUG', message);
+      }
     }
-    _writeToFile('DEBUG', message);
   }
 
   // Лог успешного действия
   static void success(String message) {
-    if (kDebugMode) {
+    if (kDebugMode || _enableReleaseLogging) {
       dev.log('✅ $message', name: _tag);
-      // debugPrint('[$_tag] ✅ SUCCESS: $message');
+      // Записываем в файл только если включен релизный лог
+      if (_enableReleaseLogging) {
+        _writeToFile('SUCCESS', message);
+      }
     }
-    _writeToFile('SUCCESS', message);
   }
 
   // Метод для получения файла (например, чтобы отправить по почте)
@@ -77,4 +83,12 @@ class AppLogger {
     final directory = await getApplicationDocumentsDirectory();
     return File('${directory.path}/app_logs.txt');
   }
+  
+  // Метод для включения/отключения логирования в релизе
+  static void setReleaseLogging(bool enabled) {
+    _enableReleaseLogging = enabled;
+  }
+  
+  // Метод для проверки статуса логирования в релизе
+  static bool get isReleaseLoggingEnabled => _enableReleaseLogging;
 }
